@@ -1,0 +1,12 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: The subscription-payments epic — declaration, doc set and task contracts — is on main
+  affects:
+    - specs/epics/subscription-payments
+    - specs/epics/README.md
+    - tasks
+  doneWhen:
+    - epic.yaml, README, design, implementation plan, risks and status are merged
+    - the five task contracts exist
+  gates: []

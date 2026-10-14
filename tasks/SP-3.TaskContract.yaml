@@ -1,0 +1,15 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: The template's schema is applied through the @saas/db runner by the db-migrate component, from init.sql verbatim, with a checksummed manifest and tests
+  affects:
+    - packages/db
+    - tests/db
+    - infra/db-migrate
+    - pnpm-lock.yaml
+  doneWhen:
+    - pnpm --filter @saas/db run manifest:check passes
+    - node packages/db/dist/runner/cli.js plan --env stage lists 000_control_baseline and 010_subscriptions_init
+    - tests/db is green in Checks
+  gates:
+    - checks
