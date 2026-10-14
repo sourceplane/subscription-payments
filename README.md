@@ -63,8 +63,10 @@ Supabase URL and anon key as vars.
 The upstream README (`apps/web/README.md`) describes local development with
 the Supabase CLI and Docker (`pnpm --filter @app/web supabase:start`, …).
 pnpm 10 blocks the `supabase` package's postinstall, which downloads the CLI
-binary; run `pnpm approve-builds` (or `pnpm rebuild supabase`) once if you
-want the local stack. CI never needs it.
+binary; run `pnpm approve-builds` once and pick `supabase` if you want the
+local stack (it allow-lists the package in your checkout's
+`pnpm-workspace.yaml`; a plain `pnpm rebuild` does not run a blocked script).
+CI never needs it: the runner applies the schema.
 
 ## How it maps to Vercel
 
