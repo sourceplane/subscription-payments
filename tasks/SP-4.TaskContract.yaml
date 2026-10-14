@@ -1,0 +1,13 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: The Supabase project per environment is provisioned by Terraform through Orun, publishing the URL, keys, DB URL and wiring document the app and db-migrate components read
+  affects:
+    - infra/terraform/supabase
+    - apps/web/component.yaml
+    - apps/web/wiring.fixture.json
+    - intent.yaml
+  doneWhen:
+    - terraform validate passes on infra/terraform/supabase
+    - the component's secretEnv names match the root's secretOutputs
+  gates: []

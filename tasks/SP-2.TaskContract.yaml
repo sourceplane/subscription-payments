@@ -1,0 +1,18 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: The upstream subscription-payments starter runs on Cloudflare Workers + Static Assets on Next 16 with only the forced changes, a per-environment rendered wrangler config, the Worker secrets named, and green checks
+  affects:
+    - apps/web
+    - tests/web
+    - tooling/wire
+    - pnpm-lock.yaml
+    - package.json
+    - turbo.json
+    - .gitignore
+  doneWhen:
+    - pnpm wire:fixture, typecheck, lint, test and build are green in Checks
+    - wrangler dev serves /, redirects /signin and a signed-out /account, and answers an unsigned POST /api/webhooks with 400
+    - every change to the template's code is recorded as a departure
+  gates:
+    - checks

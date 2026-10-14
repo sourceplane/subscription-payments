@@ -1,0 +1,15 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+spec:
+  goal: A reader can run, test, preview, configure Stripe and deploy the port from the README; the as-built status is complete
+  affects:
+    - README.md
+    - specs/epics/subscription-payments/IMPLEMENTATION-STATUS.md
+    - specs/epics/subscription-payments/README.md
+    - specs/epics/subscription-payments/epic.yaml
+    - specs/epics/subscription-payments/implementation-plan.md
+    - specs/epics/README.md
+  doneWhen:
+    - README quick start is verified from a fresh clone
+    - IMPLEMENTATION-STATUS lists every PR and departure
+  gates: []

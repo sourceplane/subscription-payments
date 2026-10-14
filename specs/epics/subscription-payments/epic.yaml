@@ -1,0 +1,40 @@
+# The epic's declaration. metadata.name equals the directory name; metadata.key
+# is the task-key prefix this epic reserves (SP → SP-1, SP-2, …). Owner, target
+# date and health are the platform's — never written here.
+apiVersion: orun.io/v1
+kind: Epic
+metadata:
+  name: subscription-payments
+  key: SP
+spec:
+  title: "Vercel's Next.js Subscription Payments Starter on Cloudflare Workers + Supabase"
+  summary: "The Vercel nextjs-subscription-payments template — Supabase Auth with cookie sessions through @supabase/ssr, a Postgres schema of users, customers, products, prices and subscriptions kept in sync by Stripe webhooks, Stripe Checkout and the Customer Portal — runs on Cloudflare Workers + Static Assets through @opennextjs/cloudflare, with the Supabase project provisioned by Terraform through Orun (the Lumen baseline's supabase root) and its schema applied by the db-migrate component from the template's own migration. The template's code stays the code; what moves is where it runs, where the project comes from, and how its secrets reach the Worker."
+  state: draft
+  milestones:
+    - name: "SP0 — the spec"
+      exitCriteria:
+        - "the doc set and the task contracts are on main"
+      tasks: [SP-1]
+    - name: "SP1 — the app on Workers"
+      exitCriteria:
+        - "apps/web is the upstream template on Next 16 / React 19, built by `next build` + `opennextjs-cloudflare build`; middleware.ts is proxy.ts, the Supabase cookie adapters use @supabase/ssr 0.12's getAll/setAll, Stripe uses the fetch client and verifies webhooks asynchronously"
+        - "the wrangler config renders per environment from the supabase root's wiring document (fixture in verify, live in deploy); the three server secrets are Worker secrets listed in .dev.vars.example"
+        - "`pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` are green on main (Checks)"
+        - "`wrangler dev` serves the pricing page, redirects /signin to its default view and a signed-out /account to /signin, and answers an unsigned POST /api/webhooks with 400"
+      tasks: [SP-2]
+    - name: "SP2 — the schema through db-migrate"
+      exitCriteria:
+        - "packages/db (@saas/db) carries the template's init.sql verbatim as migration 010 behind the control migration, with a checksummed manifest"
+        - "infra/db-migrate plans on pull requests and applies on merge to main, after the supabase root"
+        - "tests/db verifies the checksums and the offline plan"
+      tasks: [SP-3]
+    - name: "SP3 — the Supabase project from Terraform"
+      exitCriteria:
+        - "infra/terraform/supabase provisions the stage and prod projects and publishes URL, anon and service-role keys, the DB URL and the wiring document as orun secrets"
+        - "the app component declares the build-time env, the service-role secret and the wiring it needs from that root, and depends on it and on db-migrate"
+      tasks: [SP-4]
+    - name: "SP4 — ready to instantiate"
+      exitCriteria:
+        - "the README says how to run, test, preview and deploy it through Orun, how Stripe (fixtures, webhook endpoint, the three secrets) and the Supabase auth Site URL are configured"
+        - "the as-built status records every departure from the upstream template"
+      tasks: [SP-5]
