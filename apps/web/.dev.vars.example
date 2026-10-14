@@ -1,0 +1,18 @@
+# Local Worker secrets for `wrangler dev` / `opennextjs-cloudflare preview`.
+# Copy to .dev.vars (git-ignored); never commit a value.
+#
+# In stage/prod these three are Worker secrets, not wrangler vars: the deploy
+# lane sets SUPABASE_SERVICE_ROLE_KEY from the orun secret the `supabase` root
+# publishes, and the product sets the two Stripe values once per environment
+# (`wrangler secret put STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` on the
+# `subscription-payments-web-<env>` Worker, or as orun secrets the deploy lane
+# reads). See specs/epics/subscription-payments/design.md.
+SUPABASE_SERVICE_ROLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# The Supabase URL and anon key are wrangler vars (rendered into
+# wrangler.jsonc from wiring.fixture.json by `pnpm run wire:fixture`); put
+# real values here only to point a local Worker at a real project.
+# NEXT_PUBLIC_SUPABASE_URL=
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=

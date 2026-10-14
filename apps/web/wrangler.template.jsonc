@@ -1,0 +1,29 @@
+// Rendered to wrangler.jsonc (git-ignored) by tooling/wire: the verify lane
+// renders from wiring.fixture.json, the deploy lane from the wiring document
+// the `supabase` Terraform root lease-publishes (WIRING_SUPABASE_<ENV>). The
+// workers-assets composition deploys one environment per job with no wrangler
+// `--env`, so `__ENV__` names the environment this config is rendered for.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "subscription-payments-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  // The Supabase project the Worker talks to, under the template's own env
+  // names. The anon key is public by design — Row Level Security protects the
+  // data — so it is a var, not a secret. Server code reads these through
+  // process.env, exactly as the template does on Vercel.
+  //
+  // Not here, by design: SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY and
+  // STRIPE_WEBHOOK_SECRET are Worker secrets (`wrangler secret put`, or
+  // .dev.vars locally) — see .dev.vars.example.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@@wiring(supabase/__ENV__:supabase_url)@@",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@@wiring(supabase/__ENV__:supabase_anon_key)@@"
+  }
+}
