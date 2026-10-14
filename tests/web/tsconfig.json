@@ -1,0 +1,20 @@
+{
+  "extends": "../../tooling/tsconfig/web.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["node"],
+    // The app's files are typechecked through these imports under the app's
+    // own strictness (its tsconfig has no noUncheckedIndexedAccess) and with
+    // its baseUrl, which its bare `types_db` / `utils/...` imports rely on.
+    "noUncheckedIndexedAccess": false,
+    "baseUrl": "../../apps/web",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
