@@ -12,38 +12,47 @@ spec:
   # Its own lane per environment: the Next.js build is the longest job in the
   # plan, and a shared lane would wait on it.
   lane: isolated
-  # The Supabase project must exist before this deploys: its URL and anon key
-  # are read at build time (NEXT_PUBLIC_* are inlined) and rendered into
-  # wrangler vars for the Worker. The schema must be applied too: the pricing
-  # page reads products/prices and the webhook writes them.
+  # INFRA BEFORE APP, ENFORCED ON MAIN. A merge to main converges the whole
+  # product in one run: the Supabase project, then the migrations, then this
+  # Worker. Its deploy reads the project's URL and keys
+  # (WIRING_SUPABASE_<ENV>, rendered into wrangler.jsonc and pushed as a
+  # Worker secret) and needs the schema applied, and a job resolves its
+  # secrets when it STARTS — so it waits on both, `mode: enforced`, and the
+  # document the supabase apply lease-published is there. A pull request
+  # deploys nothing, so nothing on one waits: every edge is advisory there.
   dependsOn:
     - component: supabase
+      mode: enforced
+      modeRules:
+        - mode: advisory
+          when:
+            triggerRef: github-pull-request
     - component: db-migrate
-  secretEnv:
-    # Build time, under the template's own names (`next build` inlines them).
-    NEXT_PUBLIC_SUPABASE_URL: "secret://subscription-payments/subscription-payments/{{ .environment }}/SUPABASE_URL"
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: "secret://subscription-payments/subscription-payments/{{ .environment }}/SUPABASE_ANON_KEY"
-    # Server only, never inlined into a client bundle: the admin client in
-    # utils/supabase/admin.ts (webhook upserts, customer mapping) reads it as a
-    # Worker secret; declaring it here lets the deploy lane set it. The two
-    # Stripe secrets (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) are the
-    # product's own and are set once per environment — see .dev.vars.example.
-    SUPABASE_SERVICE_ROLE_KEY: "secret://subscription-payments/subscription-payments/{{ .environment }}/SUPABASE_SERVICE_ROLE_KEY"
-    # The wiring document the wrangler template is rendered from per environment.
-    WIRING_SUPABASE_STAGE: "secret://subscription-payments/subscription-payments/stage/WIRING_SUPABASE"
-    WIRING_SUPABASE_PROD: "secret://subscription-payments/subscription-payments/prod/WIRING_SUPABASE"
+      mode: enforced
+      modeRules:
+        - mode: advisory
+          when:
+            triggerRef: github-pull-request
   subscribe:
     environments:
+      # dev verifies with the committed fixture render and reads no wiring.
       - name: dev
         profile: verify
+      # Each deployed environment reads ITS OWN wiring document (Lumen's
+      # scoping): stage never waits on prod's project to exist, and dev
+      # resolves no credential it could never use.
       - name: stage
         profile: verify
+        secretEnv:
+          WIRING_SUPABASE_STAGE: "secret://subscription-payments/subscription-payments/stage/WIRING_SUPABASE"
         profileRules:
           - profile: deploy
             when:
               triggerRef: github-push-main
       - name: prod
         profile: verify
+        secretEnv:
+          WIRING_SUPABASE_PROD: "secret://subscription-payments/subscription-payments/prod/WIRING_SUPABASE"
         profileRules:
           - profile: deploy
             when:
@@ -72,20 +81,24 @@ spec:
     workersDevSubdomain: your-workers-subdomain
 
     installCommand: pnpm install --frozen-lockfile
-    # Render this environment's wrangler config from the wiring document, then
-    # build (the verify lane already rendered from the fixture through
-    # `wire:fixture`; a deploy lane re-renders with the real values). The
-    # site's public origin — Stripe success/cancel URLs, auth email redirects,
-    # metadataBase — is the environment's Worker URL (`getURL()` in
-    # utils/helpers.ts reads NEXT_PUBLIC_SITE_URL); override it for a custom
-    # domain. NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is the product's public Stripe
-    # key, a build-time value to export here once it has one (empty is a valid
-    # build: Checkout is simply unreachable until it is set).
-    buildCommand: node ../../tooling/wire/live.mjs --template wrangler.template.jsonc --out wrangler.jsonc --components supabase --env "${ORUN_ENVIRONMENT}" && NEXT_PUBLIC_SITE_URL="https://subscription-payments-web-${ORUN_ENVIRONMENT}.${WORKERS_DEV_SUBDOMAIN}.workers.dev" pnpm exec turbo run build --filter=@app/web
+    # wrangler.jsonc is COMMITTED — the fixture render, so the composition's
+    # structure check (`test -f wrangler.jsonc`, before the build, in a fresh
+    # checkout) passes. Stage and prod re-render it here, in their own job
+    # tree, from this environment's wiring document — the project URL, the
+    # anon key and the Worker's origin, which `next build` inlines
+    # (next.config.mjs) — then build, then hand the document's service-role
+    # key to the Worker as a SECRET (tooling/wire/secrets.mjs: `wrangler
+    # secret bulk`, the value over stdin). Only the deploy lane holds a
+    # Cloudflare credential, so a verify lane renders and builds the same and
+    # pushes nothing. dev verifies with the fixture and has no wiring.
+    buildCommand: if [ "${ORUN_ENVIRONMENT}" != dev ]; then node ../../tooling/wire/live.mjs --template wrangler.template.jsonc --out wrangler.jsonc --components supabase --env "${ORUN_ENVIRONMENT}"; fi && pnpm exec turbo run build --filter=@app/web && if [ "${ORUN_ENVIRONMENT}" != dev ]; then node ../../tooling/wire/secrets.mjs --component supabase --env "${ORUN_ENVIRONMENT}" --secret SUPABASE_SERVICE_ROLE_KEY=supabase_service_role_key --worker "subscription-payments-web-${ORUN_ENVIRONMENT}" --config wrangler.jsonc; fi
 
-    # Smoke: the pricing page renders (with or without products) and the
-    # navbar carries its link.
-    smokeCommand: "html=$(curl -sfL \"${DEPLOYED_URL}/\") && echo \"${html}\" | grep -q 'Pricing'"
+    # Smoke: the pricing page renders (its navbar carries the Pricing link,
+    # with or without plans), and /api/health answers ok — the
+    # Supabase project reachable with the keys the Worker was built with, the
+    # schema migrated, and the service-role secret the project's own. Each
+    # response is buffered before grep so an early match cannot SIGPIPE curl.
+    smokeCommand: "html=$(curl -sfL \"${DEPLOYED_URL}/\") && echo \"${html}\" | grep -q 'Pricing' && health=$(curl -sf \"${DEPLOYED_URL}/api/health\") && echo \"${health}\" | grep -q '\"ok\":true'"
   labels:
     team: platform
     layer: delivery

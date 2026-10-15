@@ -9,7 +9,7 @@ metadata:
 spec:
   title: "Vercel's Next.js Subscription Payments Starter on Cloudflare Workers + Supabase"
   summary: "The Vercel nextjs-subscription-payments template — Supabase Auth with cookie sessions through @supabase/ssr, a Postgres schema of users, customers, products, prices and subscriptions kept in sync by Stripe webhooks, Stripe Checkout and the Customer Portal — runs on Cloudflare Workers + Static Assets through @opennextjs/cloudflare, with the Supabase project provisioned by Terraform through Orun (the Lumen baseline's supabase root) and its schema applied by the db-migrate component from the template's own migration. The template's code stays the code; what moves is where it runs, where the project comes from, and how its secrets reach the Worker."
-  state: completed
+  state: started
   milestones:
     - name: "SP0 — the spec"
       exitCriteria:
@@ -38,3 +38,12 @@ spec:
         - "the README says how to run, test, preview and deploy it through Orun, how Stripe (fixtures, webhook endpoint, the three secrets) and the Supabase auth Site URL are configured"
         - "the as-built status records every departure from the upstream template"
       tasks: [SP-5]
+    - name: "SP5 — a baseline"
+      exitCriteria:
+        - "blueprint.yaml (the console card, requires [github, cloudflare, supabase]) and repo-blueprint.yaml (the build) take a new product from nothing to live on stage and prod in ONE landing, then record it (01-product, 02-docs)"
+        - "the product's own push-to-main plan converges supabase → db-migrate → web per environment, every edge enforced on main and advisory on a pull request"
+        - "the app reads its Supabase URL and keys from WIRING_SUPABASE_<ENV>: the URL and anon key rendered into wrangler.jsonc and inlined by the build, the service-role key pushed as a Worker secret — never a var or a bundle"
+        - "a fresh product deploys, signs a user up and in and renders the account page with no Stripe key; pricing shows the sample plans with a connect-Stripe notice, checkout and the portal say Stripe is not connected, the webhook answers 503"
+        - "every table in public has row-level security with upstream's policies: the anon key reads the plans and nothing else, a user their own row and subscriptions; migration 020 and tests/db hold it"
+        - "Baseline CI is green: contract tests, the blueprint read by the pinned orun, the leak gate, the offline bootstrap and the product's plans, and the end-to-end tier over a local Supabase Auth and Data API"
+      tasks: [SP-6]

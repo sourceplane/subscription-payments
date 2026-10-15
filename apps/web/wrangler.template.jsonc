@@ -1,8 +1,21 @@
-// Rendered to wrangler.jsonc (git-ignored) by tooling/wire: the verify lane
-// renders from wiring.fixture.json, the deploy lane from the wiring document
-// the `supabase` Terraform root lease-publishes (WIRING_SUPABASE_<ENV>). The
-// workers-assets composition deploys one environment per job with no wrangler
-// `--env`, so `__ENV__` names the environment this config is rendered for.
+// wrangler.template.jsonc is the source and wrangler.jsonc is rendered from
+// it by tooling/wire: edit the template, never the render. Two renders:
+//
+//   - committed: the render from wiring.fixture.json (`pnpm run wire:fixture`),
+//     a placeholder project URL and key. `wrangler dev`, the dev verify lane
+//     and the composition's structure check (which runs BEFORE the build, in a
+//     fresh checkout) all read it, so it has to exist without a build. Edit
+//     this file and re-render; tests/web fails when the two disagree.
+//   - deployed: the stage and prod lanes re-render it inside their own job
+//     tree, before the build, from the wiring document the `supabase`
+//     Terraform root lease-publishes (WIRING_SUPABASE_<ENV>,
+//     apps/web/component.yaml).
+//
+// `next build` reads the vars below from whichever render it finds
+// (next.config.mjs) and inlines them into the browser bundle, so the browser
+// and the Worker always talk to the same project. The workers-assets
+// composition deploys one environment per job with no wrangler `--env`, so
+// a placeholder token names the environment a render is for.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "subscription-payments-web",
@@ -15,15 +28,19 @@
   },
   "observability": { "enabled": true },
   // The Supabase project the Worker talks to, under the template's own env
-  // names. The anon key is public by design — Row Level Security protects the
-  // data — so it is a var, not a secret. Server code reads these through
-  // process.env, exactly as the template does on Vercel.
+  // names, and the Worker's own origin (`getURL()`: Stripe's return URLs, the
+  // links in auth emails). The anon key is public by design — row-level
+  // security protects the data — so it is a var, not a secret. Locally,
+  // apps/web/.dev.vars overrides any of them.
   //
-  // Not here, by design: SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY and
-  // STRIPE_WEBHOOK_SECRET are Worker secrets (`wrangler secret put`, or
-  // .dev.vars locally) — see .dev.vars.example.
+  // Not here, by design: SUPABASE_SERVICE_ROLE_KEY is a Worker SECRET. It
+  // travels in the same wiring document, and the deploy lane pushes it to
+  // the Worker with `wrangler secret bulk` (tooling/wire/secrets.mjs) — it
+  // never enters a wrangler file or a bundle. The Stripe keys are Worker
+  // secrets the owner adds (.dev.vars.example).
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "@@wiring(supabase/__ENV__:supabase_url)@@",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@@wiring(supabase/__ENV__:supabase_anon_key)@@"
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@@wiring(supabase/__ENV__:supabase_anon_key)@@",
+    "NEXT_PUBLIC_SITE_URL": "https://subscription-payments-web-__ENV__.your-workers-subdomain.workers.dev"
   }
 }

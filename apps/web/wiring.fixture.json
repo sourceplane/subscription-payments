@@ -1,10 +1,12 @@
 {
   "supabase/stage": {
     "supabase_url": "https://stage-project-ref.supabase.co",
-    "supabase_anon_key": "sb_anon_fixture_stage"
+    "supabase_anon_key": "sb_anon_fixture_stage",
+    "supabase_service_role_key": "sb_service_role_fixture_stage"
   },
   "supabase/prod": {
     "supabase_url": "https://prod-project-ref.supabase.co",
-    "supabase_anon_key": "sb_anon_fixture_prod"
+    "supabase_anon_key": "sb_anon_fixture_prod",
+    "supabase_service_role_key": "sb_service_role_fixture_prod"
   }
 }

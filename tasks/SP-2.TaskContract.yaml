@@ -1,5 +1,8 @@
 apiVersion: orun.io/v1
 kind: TaskContract
+metadata:
+  name: SP-2
+  title: "The app on Workers"
 spec:
   goal: The upstream subscription-payments starter runs on Cloudflare Workers + Static Assets on Next 16 with only the forced changes, a per-environment rendered wrangler config, the Worker secrets named, and green checks
   affects:

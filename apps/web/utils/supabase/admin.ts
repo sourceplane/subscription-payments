@@ -1,5 +1,5 @@
 import { toDateTime } from '@/utils/helpers';
-import { stripe } from '@/utils/stripe/config';
+import { getStripe } from '@/utils/stripe/config';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import type { Database, Tables, TablesInsert } from 'types_db';
@@ -111,7 +111,7 @@ const upsertCustomerToSupabase = async (uuid: string, customerId: string) => {
 
 const createCustomerInStripe = async (uuid: string, email: string) => {
   const customerData = { metadata: { supabaseUUID: uuid }, email: email };
-  const newCustomer = await stripe.customers.create(customerData);
+  const newCustomer = await getStripe().customers.create(customerData);
   if (!newCustomer) throw new Error('Stripe customer creation failed.');
 
   return newCustomer.id;
@@ -139,13 +139,13 @@ const createOrRetrieveCustomer = async ({
   // Retrieve the Stripe customer ID using the Supabase customer ID, with email fallback
   let stripeCustomerId: string | undefined;
   if (existingSupabaseCustomer?.stripe_customer_id) {
-    const existingStripeCustomer = await stripe.customers.retrieve(
+    const existingStripeCustomer = await getStripe().customers.retrieve(
       existingSupabaseCustomer.stripe_customer_id
     );
     stripeCustomerId = existingStripeCustomer.id;
   } else {
     // If Stripe ID is missing from Supabase, try to retrieve Stripe customer ID by email
-    const stripeCustomers = await stripe.customers.list({ email: email });
+    const stripeCustomers = await getStripe().customers.list({ email: email });
     stripeCustomerId =
       stripeCustomers.data.length > 0 ? stripeCustomers.data[0].id : undefined;
   }
@@ -203,7 +203,7 @@ const copyBillingDetailsToCustomer = async (
   const { name, phone, address } = payment_method.billing_details;
   if (!name || !phone || !address) return;
   //@ts-ignore
-  await stripe.customers.update(customer, { name, phone, address });
+  await getStripe().customers.update(customer, { name, phone, address });
   const { error: updateError } = await supabaseAdmin()
     .from('users')
     .update({
@@ -231,7 +231,7 @@ const manageSubscriptionStatusChange = async (
 
   const { id: uuid } = customerData!;
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId, {
     expand: ['default_payment_method']
   });
   // Upsert the latest status of the subscription object.

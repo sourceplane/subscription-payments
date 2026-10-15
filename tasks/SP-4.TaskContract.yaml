@@ -1,5 +1,8 @@
 apiVersion: orun.io/v1
 kind: TaskContract
+metadata:
+  name: SP-4
+  title: "The Supabase project from Terraform"
 spec:
   goal: The Supabase project per environment is provisioned by Terraform through Orun, publishing the URL, keys, DB URL and wiring document the app and db-migrate components read
   affects:

@@ -1,7 +1,11 @@
 'use server';
 
 import Stripe from 'stripe';
-import { stripe } from '@/utils/stripe/config';
+import {
+  getStripe,
+  isStripeConnected,
+  STRIPE_NOT_CONNECTED
+} from '@/utils/stripe/config';
 import { createClient } from '@/utils/supabase/server';
 import { createOrRetrieveCustomer } from '@/utils/supabase/admin';
 import {
@@ -18,10 +22,23 @@ type CheckoutResponse = {
   sessionId?: string;
 };
 
+// Without a Stripe key (README, "Connect Stripe") there is no session to
+// create and no portal to open: both actions answer with the notice, through
+// the same toast redirect every other failure here uses — never a 500.
+const notConnected = (path: string) =>
+  getErrorRedirect(
+    path,
+    STRIPE_NOT_CONNECTED,
+    'Checkout and the customer portal turn on once this deployment has its Stripe keys.'
+  );
+
 export async function checkoutWithStripe(
   price: Price,
   redirectPath: string = '/account'
 ): Promise<CheckoutResponse> {
+  if (!isStripeConnected()) {
+    return { errorRedirect: notConnected(redirectPath) };
+  }
   try {
     // Get the user from Supabase auth
     const supabase = await createClient();
@@ -86,7 +103,7 @@ export async function checkoutWithStripe(
     // Create a checkout session in Stripe
     let session;
     try {
-      session = await stripe.checkout.sessions.create(params);
+      session = await getStripe().checkout.sessions.create(params);
     } catch (err) {
       console.error(err);
       throw new Error('Unable to create checkout session.');
@@ -120,6 +137,9 @@ export async function checkoutWithStripe(
 }
 
 export async function createStripePortal(currentPath: string) {
+  if (!isStripeConnected()) {
+    return notConnected(currentPath);
+  }
   try {
     const supabase = await createClient();
     const {
@@ -150,7 +170,7 @@ export async function createStripePortal(currentPath: string) {
     }
 
     try {
-      const { url } = await stripe.billingPortal.sessions.create({
+      const { url } = await getStripe().billingPortal.sessions.create({
         customer,
         return_url: getURL('/account')
       });

@@ -1,5 +1,8 @@
 apiVersion: orun.io/v1
 kind: TaskContract
+metadata:
+  name: SP-3
+  title: "The schema through db-migrate"
 spec:
   goal: The template's schema is applied through the @saas/db runner by the db-migrate component, from init.sql verbatim, with a checksummed manifest and tests
   affects:

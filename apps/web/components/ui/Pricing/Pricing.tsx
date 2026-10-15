@@ -28,11 +28,23 @@ interface Props {
   user: User | null | undefined;
   products: ProductWithPrices[];
   subscription: SubscriptionWithProduct | null;
+  // Whether Stripe is connected (app/page.tsx, utils/stripe/config.ts): its
+  // publishable key comes from the server, so connecting needs no rebuild.
+  checkout: {
+    enabled: boolean;
+    publishableKey?: string;
+    samplePlans: boolean;
+  };
 }
 
 type BillingInterval = 'lifetime' | 'year' | 'month';
 
-export default function Pricing({ user, products, subscription }: Props) {
+export default function Pricing({
+  user,
+  products,
+  subscription,
+  checkout
+}: Props) {
   const intervals = Array.from(
     new Set(
       products.flatMap((product) =>
@@ -47,6 +59,7 @@ export default function Pricing({ user, products, subscription }: Props) {
   const currentPath = usePathname();
 
   const handleStripeCheckout = async (price: Price) => {
+    if (!checkout.enabled) return;
     setPriceIdLoading(price.id);
 
     if (!user) {
@@ -75,7 +88,7 @@ export default function Pricing({ user, products, subscription }: Props) {
       );
     }
 
-    const stripe = await getStripe();
+    const stripe = await getStripe(checkout.publishableKey);
     stripe?.redirectToCheckout({ sessionId });
 
     setPriceIdLoading(undefined);
@@ -114,6 +127,9 @@ export default function Pricing({ user, products, subscription }: Props) {
               Start building for free, then add a site plan to go live. Account
               plans unlock additional features.
             </p>
+            {!checkout.enabled && (
+              <StripeNotConnected samplePlans={checkout.samplePlans} />
+            )}
             <div className="relative self-center mt-6 bg-zinc-900 rounded-lg p-0.5 flex sm:mt-8 border border-zinc-800">
               {intervals.includes('month') && (
                 <button
@@ -185,6 +201,7 @@ export default function Pricing({ user, products, subscription }: Props) {
                     <Button
                       variant="slim"
                       type="button"
+                      disabled={!checkout.enabled}
                       loading={priceIdLoading === price.id}
                       onClick={() => handleStripeCheckout(price)}
                       className="block w-full py-2 mt-8 text-sm font-semibold text-center text-white rounded-md hover:bg-zinc-900"
@@ -201,4 +218,23 @@ export default function Pricing({ user, products, subscription }: Props) {
       </section>
     );
   }
+}
+
+function StripeNotConnected({ samplePlans }: { samplePlans: boolean }) {
+  return (
+    <div
+      role="status"
+      data-stripe="not-connected"
+      className="max-w-2xl m-auto mt-8 rounded-md border border-pink-500 bg-zinc-900 px-4 py-3 text-zinc-200 sm:text-center"
+    >
+      <p className="font-semibold text-white">
+        Connect Stripe to enable checkout.
+      </p>
+      <p className="mt-1 text-sm">
+        {samplePlans
+          ? "These are the template's sample plans. This deployment has no Stripe keys yet; once its owner adds them, checkout and the customer portal turn on and the plans come from Stripe."
+          : 'This deployment has no Stripe keys yet; once its owner adds them, checkout and the customer portal turn on.'}
+      </p>
+    </div>
+  );
 }

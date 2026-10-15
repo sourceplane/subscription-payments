@@ -1,5 +1,10 @@
 import Stripe from 'stripe';
-import { stripe } from '@/utils/stripe/config';
+import {
+  getStripe,
+  isStripeConnected,
+  stripeWebhookSecret,
+  STRIPE_NOT_CONNECTED
+} from '@/utils/stripe/config';
 import {
   upsertProductRecord,
   upsertPriceRecord,
@@ -22,15 +27,22 @@ const relevantEvents = new Set([
 ]);
 
 export async function POST(req: Request) {
+  // Until the owner connects Stripe (the secret key and this endpoint's
+  // signing secret, README "Connect Stripe") there is nothing to verify a
+  // delivery against: say so with a 503, which Stripe retries, rather than a
+  // 500, or a 400 that reads as a forged event.
+  const webhookSecret = stripeWebhookSecret();
+  if (!isStripeConnected() || !webhookSecret) {
+    return Response.json({ error: STRIPE_NOT_CONNECTED }, { status: 503 });
+  }
+
   const body = await req.text();
   const sig = req.headers.get('stripe-signature') as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event: Stripe.Event;
 
   try {
-    if (!sig || !webhookSecret)
-      return new Response('Webhook secret not found.', { status: 400 });
-    event = await stripe.webhooks.constructEventAsync(
+    if (!sig) return new Response('Webhook secret not found.', { status: 400 });
+    event = await getStripe().webhooks.constructEventAsync(
       body,
       sig,
       webhookSecret,

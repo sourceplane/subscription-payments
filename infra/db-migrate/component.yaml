@@ -15,11 +15,19 @@ spec:
   owner: platform
   domain: infra
 
+  # Migrations read the Supabase connection from the orun secrets the
+  # `supabase` apply lease-publishes, and a job resolves its secrets when it
+  # starts — so on main this waits for that apply, `mode: enforced`. The app
+  # waits on this in turn: the order on main is supabase → db-migrate → web.
+  # Advisory on a pull request, which applies nothing.
   dependsOn:
     - component: db
-    # Migrations read the Supabase connection from the orun secrets the
-    # `supabase` component lease-publishes post-apply.
     - component: supabase
+      mode: enforced
+      modeRules:
+        - mode: advisory
+          when:
+            triggerRef: github-pull-request
 
   path: packages/db/src/migrations
 

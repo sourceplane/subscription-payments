@@ -4,9 +4,10 @@ import Navbar from '@/components/ui/Navbar';
 import { Toaster } from '@/components/ui/Toasts/toaster';
 import { PropsWithChildren, Suspense } from 'react';
 import { getURL } from '@/utils/helpers';
+import { SITE_NAME } from '@/utils/site';
 import 'styles/main.css';
 
-const title = 'Next.js Subscription Starter';
+const title = SITE_NAME;
 const description = 'Brought to you by Vercel, Stripe, and Supabase.';
 
 export const metadata: Metadata = {
