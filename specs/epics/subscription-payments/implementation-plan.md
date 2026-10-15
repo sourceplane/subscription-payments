@@ -3,7 +3,7 @@
 Milestones land in order; each task is one pull request on an
 `orun/SP-n-<slug>` branch with an `Orun-Task: SP-n` trailer.
 
-## SP0 — the spec
+## SP0 — the spec ✅
 
 This doc set, `epic.yaml` and the task contracts, merged to `main`.
 
@@ -11,7 +11,7 @@ This doc set, `epic.yaml` and the task contracts, merged to `main`.
 - the five documents and `epic.yaml` are on `main`
 - `tasks/SP-1..SP-5.TaskContract.yaml` exist
 
-## SP1 — the app on Workers
+## SP1 — the app on Workers ✅
 
 `apps/web` is the upstream template with the Workers build around it, on
 Next 16 / React 19 with only the forced changes (`proxy.ts`, the ssr 0.12
@@ -26,7 +26,7 @@ helpers, the auth settings and the webhook route's decisions.
 - `wrangler dev` answers `/` with the pricing page, `/signin` with a 307 to `/signin/password_signin`, a signed-out `/account` with a 307 to `/signin`, and an unsigned `POST /api/webhooks` with 400 "Webhook secret not found."
 - the sign-in views render (`/signin/password_signin`, `/signin/signup`)
 
-## SP2 — the schema through db-migrate
+## SP2 — the schema through db-migrate ✅
 
 `packages/db` is `@saas/db` with the control migration and
 `010_subscriptions_init/up.sql` (the template's `init.sql`, byte for byte)
@@ -39,7 +39,7 @@ manifest and the offline plan.
 - `node packages/db/dist/runner/cli.js plan --env stage` lists `000_control_baseline` and `010_subscriptions_init`
 - `tests/db` is green in `Checks`
 
-## SP3 — the Supabase project from Terraform
+## SP3 — the Supabase project from Terraform ✅
 
 `infra/terraform/supabase` provisions a project per environment and
 publishes URL, keys, DB URL and the wiring document; `apps/web/component.yaml`
@@ -51,7 +51,7 @@ the Worker and the deploy read.
 - the component's `secretEnv` keys match the root's `secretOutputs`
 - the fixture's wiring keys match the template's tokens (`wire:fixture` renders)
 
-## SP4 — ready to instantiate
+## SP4 — ready to instantiate ✅
 
 README (run, test, preview, deploy, Stripe fixtures / webhook / secrets,
 the Supabase auth Site URL), `IMPLEMENTATION-STATUS.md` with PRs and

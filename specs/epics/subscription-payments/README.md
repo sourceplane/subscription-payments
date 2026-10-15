@@ -8,7 +8,7 @@ The upstream code stays the code: the `@supabase/ssr` clients and the session-re
 
 | Field | Value |
 |-------|-------|
-| Status | Draft |
+| Status | ✅ Shipped — SP0–SP4 landed (#1–#5); Supabase and migration applies and the live deploy gated on a linked workspace, Stripe keys on the product |
 | Cluster | **SP** (SP0–SP4) |
 | Owner(s) | `apps/web` (the app) · `tests/web` (helper and webhook tests) · `packages/db` + `infra/db-migrate` + `tests/db` (the schema) · `infra/terraform/supabase` (the project) |
 | Builds on | `lumen` conventions — the `supabase` Terraform root, the `@saas/db` runner and `db-migrate` component, the orun-secrets wiring; `supabase-starter` for the app-on-Workers shape; `cirrus-baseline` conventions for the repository shape |
@@ -16,7 +16,7 @@ The upstream code stays the code: the `@supabase/ssr` clients and the session-re
 | Changes | Adds the Workers build, the monorepo wrapper, tests, the migrations package, the db-migrate component, the Supabase root and the deploy contract; the template's code changes only where Next 16 / Workers force it (every change is in `IMPLEMENTATION-STATUS.md`) |
 | Decisions locked | (1) OpenNext on Workers + Static Assets. (2) The anon key is a wrangler var, not a secret: RLS protects the data; the service-role key and the two Stripe secrets are Worker secrets. (3) `wrangler.jsonc` is rendered per environment from the wiring document; never committed. (4) The schema is applied by the `@saas/db` runner through Supabase's Management API, from the template's `init.sql` verbatim — not by `supabase db push` in CI. (5) No Hyperdrive: the app speaks PostgREST over HTTPS, never a Postgres socket. (6) `stripe` stays on v14: it already has the fetch client and async webhook verification. |
 | Gate | SP1 is the first user-visible rung. SP2 and SP3 need a workspace with a Supabase connection to apply; they are verified by `plan` / `terraform validate`. Checkout and the webhook need the product's Stripe keys as Worker secrets (the one manual step, see `design.md` §3). |
-| Shipped as | — |
+| Shipped as | `main` after [#5](https://github.com/sourceplane/subscription-payments/pull/5); verified locally under `wrangler dev` with fixture vars and dummy Worker secrets |
 
 ## Read order
 

@@ -9,7 +9,7 @@ metadata:
 spec:
   title: "Vercel's Next.js Subscription Payments Starter on Cloudflare Workers + Supabase"
   summary: "The Vercel nextjs-subscription-payments template — Supabase Auth with cookie sessions through @supabase/ssr, a Postgres schema of users, customers, products, prices and subscriptions kept in sync by Stripe webhooks, Stripe Checkout and the Customer Portal — runs on Cloudflare Workers + Static Assets through @opennextjs/cloudflare, with the Supabase project provisioned by Terraform through Orun (the Lumen baseline's supabase root) and its schema applied by the db-migrate component from the template's own migration. The template's code stays the code; what moves is where it runs, where the project comes from, and how its secrets reach the Worker."
-  state: draft
+  state: completed
   milestones:
     - name: "SP0 — the spec"
       exitCriteria:
