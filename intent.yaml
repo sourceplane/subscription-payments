@@ -14,8 +14,9 @@ execution:
     # enforce claim ⊆ authorized. Declaring it implies strict mode — a
     # non-interactive run that resolves no workspace fails fast.
     #
-    # Replace with this product's own Orun workspace (`orun cloud link`), and
-    # set the `ORUN_CI` repository variable to `true` to turn `ci.yml` on.
+    # `ws_CHANGE_ME` is the one value `ci.yml` treats as "not linked yet" and
+    # plans nothing for. A bootstrap writes the product's workspace here; by
+    # hand, set it to yours (`orun cloud link`) and the Orun pipeline runs.
     workspace: ws_CHANGE_ME
     requireOrg: true
     # Push the resolved catalog after a successful plan on the default branch,
@@ -35,9 +36,19 @@ compositions:
     # explicit version: a bare repository reference resolves to `:latest`,
     # which would let a catalog release change this repo's execution contracts
     # without a commit here. Bumping the tag is the deliberate upgrade step.
+    #
+    # 0.19.0, NOT 0.20.0. 0.20.0 makes the workspace install lane-scoped: it
+    # runs once in the source checkout and every job's staged tree LINKS its
+    # top-level node_modules there — out of the tree. Next 16 builds with
+    # Turbopack, which refuses a dependency that resolves outside its root
+    # ("Symlink apps/web/node_modules/next is invalid, it points out of the
+    # filesystem root"). Under 0.19.0 the job installs inside its own tree, and
+    # the app has one job per lane (`lane: isolated`), so a shared install
+    # would save nothing anyway. 0.19.0 is also the release whose first deploy
+    # retries Cloudflare's 10007 race and whose smoke retries with backoff.
     - name: stack-tectonic
       kind: oci
-      ref: oci://ghcr.io/sourceplane/stack-tectonic:0.18.2
+      ref: oci://ghcr.io/sourceplane/stack-tectonic:0.19.0
   resolution:
     precedence:
       - stack-tectonic
@@ -56,6 +67,11 @@ discovery:
 # Where the work lives (initiative-lifecycle): an epic is a directory with an
 # epic.yaml under `epics`, a task a contract under `tasks`; the `orun plan` on
 # main reconciles the tree into the workspace's work plane after a merge.
+#
+# THIS BLOCK IS THIS REPOSITORY'S OWN. A product bootstrapped from it has no
+# work tree of its own (its bootstrap work lives on the platform), so the
+# bootstrap removes the block, and this comment with it, from the product's
+# copy before the first landing.
 work:
   epics: specs/epics
   tasks: tasks
@@ -162,5 +178,5 @@ repo:
   docs:
     overview: README.md
     pages:
-      - { path: specs/epics/subscription-payments/README.md, role: reference, title: The epic }
-      - { path: specs/epics/subscription-payments/design.md, role: architecture, title: Design }
+      - { path: ai/context/operations.md, role: runbook, title: Operating contract }
+      - { path: ai/context/deployment.md, role: reference, title: Live deployment manifest }

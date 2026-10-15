@@ -8,9 +8,9 @@
 #
 # Cutover caveat: database_password is config-driven (random_password). After
 # adoption the first apply RESETS the database password to the newly generated
-# one and publishes it through the job-output secrets — db-migrate, hyperdrive
-# and the worker fleet re-wire from those in the same run, but anything still
-# consuming the pre-adoption credentials breaks until that run converges.
+# one and publishes it through the job-output secrets — db-migrate and the
+# app re-wire from those in the same run, but anything still consuming the
+# pre-adoption credentials breaks until that run converges.
 
 data "external" "adopt_project" {
   program = ["bash", "-c", <<-EOT

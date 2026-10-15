@@ -1,18 +1,23 @@
 # Local Worker secrets for `wrangler dev` / `opennextjs-cloudflare preview`.
 # Copy to .dev.vars (git-ignored); never commit a value.
 #
-# In stage/prod these three are Worker secrets, not wrangler vars: the deploy
-# lane sets SUPABASE_SERVICE_ROLE_KEY from the orun secret the `supabase` root
-# publishes, and the product sets the two Stripe values once per environment
-# (`wrangler secret put STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` on the
-# `subscription-payments-web-<env>` Worker, or as orun secrets the deploy lane
-# reads). See specs/epics/subscription-payments/design.md.
+# The service-role key: server code only (the Stripe webhook's sync, the
+# customer mapping, /api/health). In stage and prod every deploy sets it as a
+# Worker secret from the Supabase root's wiring document; here it is yours.
 SUPABASE_SERVICE_ROLE_KEY=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-
-# The Supabase URL and anon key are wrangler vars (rendered into
-# wrangler.jsonc from wiring.fixture.json by `pnpm run wire:fixture`); put
-# real values here only to point a local Worker at a real project.
+#
+# Stripe. Unset, the pricing page shows the template's sample plans with
+# checkout off, checkout and the portal answer "Stripe is not connected." and
+# the webhook answers 503. In stage and prod these are Worker secrets the
+# owner sets once per environment:
+# `wrangler secret put <NAME> --name subscription-payments-web-<env>`
+# (README, "Connect Stripe").
+# STRIPE_SECRET_KEY=sk_test_***
+# STRIPE_WEBHOOK_SECRET=whsec_***
+# STRIPE_PUBLISHABLE_KEY=pk_test_***
+#
+# The Supabase URL and anon key, and the site's origin, are wrangler vars
+# (rendered into wrangler.jsonc, which the build inlines); put real values
+# here only to point a local Worker at a real project's server side.
 # NEXT_PUBLIC_SUPABASE_URL=
 # NEXT_PUBLIC_SUPABASE_ANON_KEY=

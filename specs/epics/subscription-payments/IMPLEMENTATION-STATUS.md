@@ -10,6 +10,7 @@ the code departed from `design.md` or from the upstream template.
 | SP2 — the schema through db-migrate | ✅ Shipped (planned offline; apply gated on a linked workspace) | [#3](https://github.com/sourceplane/subscription-payments/pull/3) |
 | SP3 — the Supabase project from Terraform | ✅ Shipped (validated; apply gated on a linked workspace) | [#4](https://github.com/sourceplane/subscription-payments/pull/4) |
 | SP4 — ready to instantiate | ✅ Shipped | [#5](https://github.com/sourceplane/subscription-payments/pull/5) |
+| SP5 — a baseline | 🔄 In review (SP-6) | this branch, `claude/blissful-ptolemy-c5ajf8` |
 
 ## Departures from the upstream template
 
@@ -204,3 +205,122 @@ webhook fills.
   (Checkout → webhook → `subscriptions` row), which needs the product's
   Stripe keys as Worker secrets and products created through the webhook.
   Supabase's auth Site URL must then be set to the Worker's origin (README).
+
+## SP5 — a baseline (SP-6)
+
+The repository is an Orun baseline on the Lumen conventions, built the way
+cirrus-baseline v22 builds a product: ONE landing, after the saas-starter
+reference (SA5) without its Hyperdrive. `blueprint.yaml` is the card
+(`requires: [github, cloudflare, supabase]`; the four brokered keys —
+`CLOUDFLARE_API_TOKEN` workers-deploy, `CLOUDFLARE_ACCOUNT_ID` account-id,
+`SUPABASE_ACCESS_TOKEN` management-access, `SUPABASE_ORG_ID` org-id — as a
+preview; programme `01-product`, `02-docs`; the two-Supabase-projects
+prerequisite in its description); `repo-blueprint.yaml` places every module
+in `01-product`, brands it, links the repository, reconciles the four keys
+and lands it as one pull request, then awaits the convergence, the four
+published secrets (`SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`,
+`SUPABASE_DB_URL`, `WIRING_SUPABASE`) on stage and prod and `/` +
+`/api/health`; `02-docs` restores the promotion gate and dev's lanes and
+renders the record. The machinery is portfolio-starter-kit's (`baseline-v2`)
+as saas-starter adapted it — `.baseline/`, the rename engine, the bootstrap
+helpers, the deployment-record hook, `ai/context/`, `testing/`,
+`baseline.yml`, `tag.yml`, `ci.yml`'s `linked` gate.
+
+### Departures, in the product
+
+- **Stripe is optional** (`utils/stripe/config.ts`). Upstream built the
+  client at module load from `STRIPE_SECRET_KEY_LIVE ?? STRIPE_SECRET_KEY ??
+  ''`. `getStripe()` builds it only once a key exists; without one the
+  pricing page (`app/page.tsx`) shows the plans — the database's, or, while
+  the webhook has synced none, the template's sample plans
+  (`utils/stripe/sample-plans.ts`, held equal to `fixtures/stripe-fixtures.json`
+  by `tests/web`) — with the Subscribe buttons disabled and "Connect Stripe to
+  enable checkout"; `checkoutWithStripe` and `createStripePortal` answer with
+  the "Stripe is not connected." toast redirect; the webhook answers 503
+  `{"error":"Stripe is not connected."}` until the secret key and
+  `STRIPE_WEBHOOK_SECRET` are both set (it answered 400 "Webhook secret not
+  found." before). With Stripe connected and no products synced, the page is
+  upstream's "No subscription pricing plans found".
+- **The publishable key is read per request** (`STRIPE_PUBLISHABLE_KEY`, a
+  Worker secret, then upstream's `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY[_LIVE]`)
+  and handed to `Pricing` as a prop; `getStripe()` in `utils/stripe/client.ts`
+  takes it. Upstream inlined it at build, which would have made connecting
+  Stripe a rebuild. Checkout is on only with both halves.
+- **The Supabase values come from one wiring document.** The supabase root
+  publishes `WIRING_SUPABASE` = `{supabase_url, supabase_anon_key,
+  supabase_service_role_key}` beside Lumen's three database credentials, and
+  no longer publishes `SUPABASE_URL`, `SUPABASE_ANON_KEY` or
+  `SUPABASE_SERVICE_ROLE_KEY` on their own. The web component reads only
+  `WIRING_SUPABASE_<ENV>`, scoped to its own environment (stage resolves the
+  stage document, prod the prod one, dev none — Lumen's per-environment
+  `secretEnv`). Its `buildCommand` re-renders `wrangler.jsonc` from it (the
+  URL, the anon key, and `NEXT_PUBLIC_SITE_URL` = the Worker's origin), builds
+  — `next.config.mjs` inlines those three vars from `wrangler.jsonc`, so the
+  browser and the Worker always talk to the same project — and pushes the
+  service-role key with `wrangler secret bulk`, the value over stdin
+  (`tooling/wire/secrets.mjs`; only the deploy profile holds a Cloudflare
+  credential, so verify lanes push nothing). Before, the build read
+  `NEXT_PUBLIC_SUPABASE_*` from separate secrets, nothing pushed the
+  service-role key to the Worker, and `NEXT_PUBLIC_SITE_URL` was built from
+  `WORKERS_DEV_SUBDOMAIN`, which the composition exports only to the smoke
+  step — so it came out as `https://…-web-stage..workers.dev`.
+- **The supabase root points the project's Auth at the app**
+  (`supabase_settings`): the Worker's origin as Site URL and the one allowed
+  redirect, and `mailer_autoconfirm` on unless `authEmailConfirmation` is
+  `"true"`, because a project without SMTP of its own emails only its
+  organization's members — with confirmation on, nobody else could finish a
+  sign-up. It waits for the project to report `ACTIVE_HEALTHY` before reading
+  its keys or writing its Auth config (`terraform_data.project_ready`).
+  Every other Auth setting stays the project's. (SP-C is resolved by this.)
+- **Row-level security, checked** (migration `020_row_level_security`):
+  upstream's `init.sql` (010) already enables RLS on all five tables with its
+  policies — own `users` row (select, update), public `products` and
+  `prices`, own `subscriptions`, no policy on `customers`. 020 re-enables it
+  by name and then RAISES if any table in `public` is without RLS, so a
+  deploy that would serve one to the anon key stops at db-migrate.
+  `tests/db` runs every migration in PGlite over a stub of Supabase's `auth`
+  schema and roles and checks the catalog, the policies and what anon, a
+  signed-in user and the service role can read and write; the e2e asks the
+  real Data API.
+- **`/api/health`** (new): 200 only when the anon key reads `products` (the
+  project reachable, the schema migrated) and the service-role key lists
+  Auth's users (the secret the deploy pushed is the project's own). The
+  deploy's smoke and both phases' probes read it.
+- **The product's name is one seam** (`utils/site.ts`, `SITE_NAME`): every
+  page's `<title>` (upstream: "Next.js Subscription Starter"), the footer's
+  brand and its copyright line (upstream's literal "ACME"). The template's own
+  identity — `nextjs-subscription-payments` (its repository, the Stripe app
+  info, the Supabase CLI project id) and its demo site — stays upstream's;
+  the rename engine protects it, and every migration.
+- **`apps/web/wrangler.jsonc` is committed** — the fixture render of the
+  template — because the composition checks for it before the build. The
+  stage and prod lanes re-render it; dev verifies with the fixture.
+  `tests/web` holds the two equal and the service-role key out of both.
+- **The deploy order is enforced on main** (component `dependsOn` with
+  `mode: enforced` and an advisory `modeRules` entry for pull requests):
+  `db-migrate` → `supabase`; `web` → `supabase`, `db-migrate`.
+- **The supabase root carries Lumen's `.terraform.lock.hcl`**.
+- **stack-tectonic 0.19.0** (was 0.18.2; not 0.20.0, whose lane-scoped
+  install Turbopack refuses), **`checks.yml` on pull requests only**,
+  `ci.yml`'s `linked` gate in place of the `ORUN_CI` variable and its lanes on
+  v2.78.4.
+- `packages/db`'s runner reads `SUPABASE_API_URL` (default
+  `https://api.supabase.com`) so the e2e can point it at a stand-in.
+- `apps/web/README.md` describes the app as it runs here (upstream's text is
+  upstream's repository); `intent.yaml`'s docs pages are the product's
+  `ai/context/` pages; `tests/web` depends on `@supabase/supabase-js` (to mock
+  it) and `tests/db` on `@electric-sql/pglite` 0.5.8 (pinned by override).
+
+### Verified (SP5)
+
+See the pull request for the run log. In short: the repository's checks
+(`pnpm install --frozen-lockfile`, `wire:fixture`, typecheck, lint, test —
+53 tests: 42 in `tests/web`, 11 in `tests/db` — build); every
+`testing/*.test.sh` — the e2e over the real Supabase Auth (GoTrue 2.180.0)
+and Data API (PostgREST 12.2.12) on a local Postgres; `orun new --status` at
+v2.58.11, v2.78.4 and 2.79.0; `orun validate`; `orun work check`;
+`terraform fmt`, `init -backend=false` and `validate` on the supabase root.
+Not verified: a Terraform apply (the project, its API keys and its Auth
+settings through the brokered OAuth token — SP-M), a db-migrate apply
+against a real project, the `wrangler secret bulk` push and a deploy to a
+real account, a live bootstrap, and checkout against a real Stripe account.

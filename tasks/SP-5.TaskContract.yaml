@@ -1,5 +1,8 @@
 apiVersion: orun.io/v1
 kind: TaskContract
+metadata:
+  name: SP-5
+  title: "Ready to instantiate"
 spec:
   goal: A reader can run, test, preview, configure Stripe and deploy the port from the README; the as-built status is complete
   affects:

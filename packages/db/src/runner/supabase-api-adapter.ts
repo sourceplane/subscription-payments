@@ -1,7 +1,10 @@
 import type { MigrationEntry } from "../types.js";
 import type { AppliedMigration, MigrationAdapter } from "./types.js";
 
-const SUPABASE_API_BASE = "https://api.supabase.com";
+// The Management API's origin. SUPABASE_API_URL overrides it so a test can
+// put a local Postgres behind a stand-in for the one endpoint used here; a
+// deployment never sets it.
+const SUPABASE_API_BASE = (process.env["SUPABASE_API_URL"] ?? "https://api.supabase.com").replace(/\/+$/, "");
 
 export class SupabaseApiAdapter implements MigrationAdapter {
   private projectRef: string;

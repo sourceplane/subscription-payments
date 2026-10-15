@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// app/api/webhooks/route.ts: the Stripe webhook. Every path that answers 400
-// is decided before any network call — a missing signature or secret, a
+// app/api/webhooks/route.ts: the Stripe webhook, once Stripe is connected
+// (stripe-not-connected.test.ts covers the 503 before that). Every path that
+// answers 400 is decided before any network call — a missing signature, a
 // signature that does not verify, an event type the handler does not sync.
 // Stripe's client and the Supabase admin client are mocked; no network.
 
 const constructEventAsync = vi.fn();
-vi.mock("@/utils/stripe/config", () => ({
-  stripe: { webhooks: { constructEventAsync } },
+vi.mock("@/utils/stripe/config", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/stripe/config")>()),
+  getStripe: () => ({ webhooks: { constructEventAsync } }),
 }));
 
 const upsertProductRecord = vi.fn();
@@ -30,6 +32,7 @@ describe("POST /api/webhooks (app/api/webhooks/route.ts)", () => {
     constructEventAsync.mockReset();
     upsertProductRecord.mockReset();
     vi.spyOn(console, "log").mockImplementation(() => {});
+    process.env.STRIPE_SECRET_KEY = "sk_test_not_a_real_key";
   });
   afterEach(() => {
     process.env = { ...env };
@@ -45,12 +48,13 @@ describe("POST /api/webhooks (app/api/webhooks/route.ts)", () => {
     expect(constructEventAsync).not.toHaveBeenCalled();
   });
 
-  it("answers 400 'Webhook secret not found.' when STRIPE_WEBHOOK_SECRET is unset", async () => {
+  it("answers 503 'Stripe is not connected.' when STRIPE_WEBHOOK_SECRET is unset", async () => {
     delete process.env.STRIPE_WEBHOOK_SECRET;
     const { POST } = await import("@/app/api/webhooks/route");
     const res = await POST(post("{}", { "stripe-signature": "t=1,v1=abc" }));
-    expect(res.status).toBe(400);
-    expect(await res.text()).toBe("Webhook secret not found.");
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "Stripe is not connected." });
+    expect(constructEventAsync).not.toHaveBeenCalled();
   });
 
   it("answers 400 'Webhook Error: …' when the signature does not verify", async () => {

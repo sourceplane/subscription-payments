@@ -61,6 +61,46 @@ departures, epic `completed`.
 - the README quick start works from a fresh clone with a `.env.local` and a `.dev.vars`
 - the status file lists every PR and departure
 
+## SP5 — a baseline
+
+The repository becomes an Orun baseline on the Lumen conventions, built the
+way cirrus-baseline v22 builds a product — in ONE landing — following the
+saas-starter reference (SA5) without its Hyperdrive:
+
+- `blueprint.yaml` (the card: `requires [github, cloudflare, supabase]`, the
+  four brokered secrets as a preview, the programme `01-product`, `02-docs`,
+  the two-Supabase-projects prerequisite in its description) and
+  `repo-blueprint.yaml` (every module placed by `01-product` and landed as one
+  pull request; `02-docs` hook-only);
+- the components' edges `mode: enforced` on a push to main, advisory on a
+  pull request, so one convergence runs supabase → db-migrate → web per
+  environment;
+- `WIRING_SUPABASE` carries the project URL, the anon key and the
+  service-role key: the deploy renders the first two into `wrangler.jsonc`
+  (the build inlines them) and pushes the third as a Worker secret
+  (`tooling/wire/secrets.mjs`); the supabase root publishes Lumen's three
+  database credentials and that document, nothing else, and points the
+  project's Auth at the Worker;
+- the app deployable with no Stripe key: the Stripe client is lazy, pricing
+  shows the template's sample plans with a connect-Stripe notice, checkout
+  and the portal say so, the webhook answers 503;
+- row-level security on every table in `public`, upstream's policies kept,
+  checked by migration `020` and by `tests/db`;
+- `wrangler.jsonc` committed as the fixture render, so the composition's
+  pre-build structure check passes in a fresh checkout;
+- `.baseline/`, the rename engine, the bootstrap helpers, the deployment
+  record, `ai/context/`, `testing/` and the `baseline.yml` / `tag.yml` lanes.
+
+**Done when**
+- orun reads the build document at the bootstrap floor (v2.58.11), the lane
+  pin (v2.78.4) and 2.79.0, and the card agrees with it
+- the product's own `orun plan --trigger github-push-main` shows the order,
+  enforced; a pull request's plan holds the same edges advisory
+- the e2e tier migrates a local Supabase (real Auth and Data API) with the
+  product's own runner, builds in the job tree orun stages, and signs a user
+  up, out and in with no Stripe key, the anon key refused every row the
+  policies do not give it
+
 ## Sequencing note
 
 SP1's component already names the root's secrets and the db-migrate

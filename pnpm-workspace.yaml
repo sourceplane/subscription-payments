@@ -10,3 +10,9 @@ onlyBuiltDependencies:
   - esbuild
   - workerd
   - sharp
+
+# tests/db runs the migrations in PGlite (Postgres compiled to WASM). One
+# version, pinned: the app never imports it, and a test database must not
+# float to whatever was published yesterday.
+overrides:
+  "@electric-sql/pglite": "0.5.8"

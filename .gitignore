@@ -26,7 +26,3 @@ crash.log
 # orun per-job staged workspaces and object-model caches.
 **/.orun/runs/
 **/.orun/
-
-# Rendered wrangler configs for wiring-templated deployables (committed as
-# wrangler.template.jsonc; rendered by tooling/wire at verify/deploy time).
-apps/web/wrangler.jsonc

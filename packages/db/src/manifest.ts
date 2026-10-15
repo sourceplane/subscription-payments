@@ -26,5 +26,14 @@ export const manifest: MigrationManifest = {
       description:
         "The template's schema (supabase/migrations/20230530034630_init.sql, verbatim): users, customers, products, prices, subscriptions, the auth.users trigger, RLS policies and the realtime publication",
     },
+    {
+      id: "020_row_level_security",
+      context: "app",
+      path: "020_row_level_security/up.sql",
+      checksum:
+        "58e0d7accf7c602d16226a8e787a8c0cbf73cbb865727a682756becad0b89190",
+      description:
+        "Row-level security on every table in public, upstream's policies kept (010 wrote them): re-enabled by name, then checked — the migration stops if any table in public is left without it",
+    },
   ],
 };

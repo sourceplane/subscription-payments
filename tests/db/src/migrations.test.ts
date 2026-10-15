@@ -22,6 +22,17 @@ describe("the migration manifest (packages/db)", () => {
     expect(result.applied).toEqual(manifest.migrations.map((m) => m.id));
   });
 
+  it("re-enables row-level security, by name, on every table 010 creates", () => {
+    const init = readFileSync(path.join(migrationsDir, "010_subscriptions_init/up.sql"), "utf8");
+    const rls = readFileSync(path.join(migrationsDir, "020_row_level_security/up.sql"), "utf8");
+    const created = [...init.matchAll(/^create table (\w+)/gim)].map((m) => m[1]);
+    expect(created).toEqual(["users", "customers", "products", "prices", "subscriptions"]);
+    for (const table of created) {
+      expect(rls, table).toContain(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY;`);
+    }
+    expect(rls).toMatch(/RAISE EXCEPTION 'tables in public without row-level security/);
+  });
+
   it("skips what the database already recorded", () => {
     const applied = new Map([[manifest.migrations[0]!.id, manifest.migrations[0]!.checksum]]);
     const plan = buildPlan(manifest, applied, migrationsDir);

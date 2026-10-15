@@ -1,0 +1,40 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+metadata:
+  name: SP-6
+  title: "A baseline"
+spec:
+  goal: The repository is an Orun baseline on the Lumen conventions — a card and a build document that take a new subscription product from nothing to live on stage and prod in one landing (the Supabase project, then the migrations, then the app), branded as its own, deployable with no Stripe key, every table in public behind row-level security, with gates that prove it offline
+  affects:
+    - blueprint.yaml
+    - repo-blueprint.yaml
+    - BOOTSTRAP.md
+    - README.md
+    - .baseline/**
+    - tooling/rebrand/**
+    - tooling/bootstrap/**
+    - tooling/wire/**
+    - hooks/**
+    - testing/**
+    - docs/phases/**
+    - ai/context/**
+    - .github/workflows/**
+    - .gitignore
+    - intent.yaml
+    - pnpm-workspace.yaml
+    - pnpm-lock.yaml
+    - apps/web/**
+    - packages/db/**
+    - infra/**
+    - tests/web/**
+    - tests/db/**
+    - specs/**
+    - tasks/**
+  doneWhen:
+    - orun (the bootstrap floor, the lane pin and 2.79.0) reads repo-blueprint.yaml, and the card agrees with it
+    - the product's own push-to-main plan orders supabase → db-migrate → web, enforced, and a pull request's plan holds the same edges advisory
+    - a product built offline installs, migrates a local Supabase with its own runner, builds in the job tree orun stages, serves, and signs a user up, out and in through Supabase Auth with no Stripe key; the anon key reads no user, customer or subscription
+    - the service-role key reaches the Worker as a Worker secret, never a var or a bundle
+    - the as-built status records the departures and what is not yet proven live
+  gates:
+    - checks

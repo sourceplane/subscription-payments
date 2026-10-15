@@ -12,6 +12,7 @@
   "devDependencies": {
     "@app/eslint-config": "workspace:*",
     "@app/tsconfig": "workspace:*",
+    "@electric-sql/pglite": "0.5.8",
     "@saas/db": "workspace:*",
     "@types/node": "^22.9.0",
     "typescript": "^5.8.3",
