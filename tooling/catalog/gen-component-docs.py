@@ -119,7 +119,13 @@ def read_component(file: pathlib.Path) -> dict:
     params = spec.get("parameters") or {}
     deps = [d.get("component") for d in (spec.get("dependsOn") or []) if isinstance(d, dict)]
     envs = []
+    # Secrets may be declared for the whole component or per environment
+    # (`subscribe.environments[].secretEnv`); a page lists both.
+    req_env = set((spec.get("secretEnv") or {}).keys())
+    opt_env = set((spec.get("optionalSecretEnv") or {}).keys())
     for e in ((spec.get("subscribe") or {}).get("environments") or []):
+        req_env |= set((e.get("secretEnv") or {}).keys())
+        opt_env |= set((e.get("optionalSecretEnv") or {}).keys())
         rules = [(r.get("profile"), ((r.get("when") or {}).get("triggerRef")))
                  for r in (e.get("profileRules") or [])]
         envs.append({"name": e.get("name"), "profile": e.get("profile"), "rules": rules})
@@ -130,7 +136,8 @@ def read_component(file: pathlib.Path) -> dict:
         "description": (meta.get("description") or "").strip(),
         "type": spec.get("type"),
         "deps": [d for d in deps if d],
-        "secret_env": sorted((spec.get("secretEnv") or {}).keys()),
+        "secret_env": sorted(req_env),
+        "optional_env": sorted(opt_env - req_env),
         "envs": envs,
         "params": params,
         "migrations_path": spec.get("path") if spec.get("type") == "db-migrate" else None,
@@ -232,6 +239,18 @@ def migrations(c: dict) -> list[str]:
     return sorted(p.name for p in d.iterdir() if p.is_dir() or p.suffix == ".sql")
 
 
+# ── markdown ─────────────────────────────────────────────────────────────
+
+def md_table(header: list[str], rows: list[list[str]]) -> list[str]:
+    """A table laid out the way prettier lays it out, so a repo whose lint is
+    `prettier --check` accepts the page as written."""
+    cols = len(header)
+    width = [max(3, len(header[i]), *(len(r[i]) for r in rows)) for i in range(cols)]
+    def line(cells):
+        return "| " + " | ".join(c.ljust(width[i]) for i, c in enumerate(cells)) + " |"
+    return [line(header), "| " + " | ".join("-" * w for w in width) + " |", *(line(r) for r in rows)]
+
+
 # ── phrasing ─────────────────────────────────────────────────────────────
 
 KIND = {
@@ -266,6 +285,14 @@ def subject_of(c: dict, by_name: dict) -> str | None:
     return None
 
 
+def names_list(c: dict, keep) -> list[str]:
+    """Secret names a lane resolves, required first; an optional one (from
+    `optionalSecretEnv`) is resolved when it exists and skipped when not."""
+    req = [f"- `{k}`" for k in c["secret_env"] if keep(k)]
+    opt = [f"- `{k}` (optional)" for k in c["optional_env"] if keep(k)]
+    return req + opt
+
+
 def bullet_list(names: list[str], by_name: dict) -> list[str]:
     if not names:
         return ["- (none)"]
@@ -288,11 +315,12 @@ def overview(c: dict, by_name: dict, dependents: list[str]) -> str:
     lines = [f"# {c['name']}", ""]
     if c["description"]:
         lines += [c["description"], ""]
-    lines += [kind, "", "| | |", "|---|---|", f"| Type | `{c['type']}` |", f"| Source | `{c['path']}` |"]
+    facts = [["Type", f"`{c['type']}`"], ["Source", f"`{c['path']}`"]]
     if pkg and pkg.get("name"):
-        lines.append(f"| Package | `{pkg['name']}` |")
+        facts.append(["Package", f"`{pkg['name']}`"])
     if c["envs"]:
-        lines.append(f"| Environments | {' · '.join(env_line(e) for e in c['envs'])} |")
+        facts.append(["Environments", " · ".join(env_line(e) for e in c["envs"])])
+    lines += [kind, "", *md_table(["", ""], facts)]
     lines += ["", "## Depends on", "", *bullet_list(c["deps"], by_name),
               "", "## Depended on by", "", *bullet_list(dependents, by_name), ""]
     return "\n".join(lines)
@@ -321,13 +349,11 @@ def architecture(c: dict, by_name: dict) -> str:
             lines += ["## Published outputs", "",
                       "Written as job-output secrets on each environment after an apply; deploy",
                       "lanes downstream resolve them by name.", "",
-                      "| Secret | Terraform output |", "|---|---|",
-                      *[f"| `{k}` | `{v}` |" for k, v in pub], ""]
+                      *md_table(["Secret", "Terraform output"], [[f"`{k}`", f"`{v}`"] for k, v in pub]), ""]
         elif f["outputs"]:
             lines += ["## Outputs", "", *[f"- `{o}`" for o in f["outputs"]], ""]
-        if c["secret_env"]:
-            lines += ["## Resolved at run time (names only)", "",
-                      *[f"- `{k}`" for k in c["secret_env"]], ""]
+        if c["secret_env"] or c["optional_env"]:
+            lines += ["## Resolved at run time (names only)", "", *names_list(c, lambda k: True), ""]
         return "\n".join(lines)
 
     if t == "db-migrate":
@@ -337,9 +363,8 @@ def architecture(c: dict, by_name: dict) -> str:
                   "is never edited: a change is a new, later migration.", ""]
         if migs:
             lines += ["## Migrations", "", *[f"- `{m}`" for m in migs], ""]
-        if c["secret_env"]:
-            lines += ["## Resolved at run time (names only)", "",
-                      *[f"- `{k}`" for k in c["secret_env"]], ""]
+        if c["secret_env"] or c["optional_env"]:
+            lines += ["## Resolved at run time (names only)", "", *names_list(c, lambda k: True), ""]
         return "\n".join(lines)
 
     pkg = package_of(c)
@@ -347,21 +372,20 @@ def architecture(c: dict, by_name: dict) -> str:
         cfg_name, cfg = worker_config(c)
         lines += [f"Built by the turbo pipeline from `{c['path']}` and deployed with wrangler.", ""]
         if cfg:
-            lines += ["| | |", "|---|---|", f"| Worker config | `{c['path']}/{cfg_name}` |"]
+            facts = [["Worker config", f"`{c['path']}/{cfg_name}`"]]
             if cfg.get("main"):
-                lines.append(f"| Entry | `{cfg['main']}` |")
+                facts.append(["Entry", f"`{cfg['main']}`"])
             if cfg.get("compatibility_date"):
-                lines.append(f"| Compatibility date | `{cfg['compatibility_date']}` |")
+                facts.append(["Compatibility date", f"`{cfg['compatibility_date']}`"])
             if cfg.get("compatibility_flags"):
-                lines.append(f"| Compatibility flags | {', '.join(f'`{x}`' for x in cfg['compatibility_flags'])} |")
-            lines.append("")
+                facts.append(["Compatibility flags", ", ".join(f"`{x}`" for x in cfg["compatibility_flags"])])
+            lines += [*md_table(["", ""], facts), ""]
             rows = bindings(cfg)
             lines += ["## Bindings", ""]
             if rows:
-                lines += ["| Binding | Kind | Source |", "|---|---|---|",
-                          *[f"| `{b}` | {k} | {s} |" for b, k, s in rows], ""]
+                lines += [*md_table(["Binding", "Kind", "Source"], [[f"`{b}`", k, s] for b, k, s in rows]), ""]
                 if any("from `" in s for _, _, s in rows):
-                    lines += ["Identifiers marked *from* a component are filled in at deploy time from",
+                    lines += ["Identifiers marked _from_ a component are filled in at deploy time from",
                               "that component's published outputs for the environment being deployed.", ""]
             else:
                 lines += ["None: the Worker binds no storage or service.", ""]
@@ -374,14 +398,14 @@ def architecture(c: dict, by_name: dict) -> str:
                 lines += ["## Variables", "", ", ".join(f"`{v}`" for v in var_names)
                           + (f" — overridden per environment ({', '.join(f'`{e}`' for e in env_names)})."
                              if env_names else "."), ""]
-        wiring = [k for k in c["secret_env"] if k.startswith("WIRING_")]
-        others = [k for k in c["secret_env"] if not k.startswith("WIRING_")]
+        wiring = names_list(c, lambda k: k.startswith("WIRING_"))
+        others = names_list(c, lambda k: not k.startswith("WIRING_"))
         if wiring:
             lines += ["## Wiring", "",
                       "Resolved at deploy time from secrets the infrastructure lanes publish (names only):",
-                      "", *[f"- `{k}`" for k in wiring], ""]
+                      "", *wiring, ""]
         if others:
-            lines += ["## Secrets resolved by the lane (names only)", "", *[f"- `{k}`" for k in others], ""]
+            lines += ["## Secrets resolved by the lane (names only)", "", *others, ""]
         return "\n".join(lines)
 
     # turbo-package
@@ -391,8 +415,8 @@ def architecture(c: dict, by_name: dict) -> str:
         if files:
             lines += [f"## Suites ({len(files)})", "", *[f"- `{f}`" for f in files], ""]
         return "\n".join(lines)
-    lines += [f"A workspace package at `{c['path']}`, consumed at build time by the components",
-              "that depend on it. It holds no credentials and opens no connections of its own.", ""]
+    lines += [f"A workspace package at `{c['path']}`, consumed by the components that depend",
+              "on it. It has no deployed surface of its own.", ""]
     if pkg and pkg.get("exports"):
         ex = pkg["exports"]
         keys = sorted(ex.keys()) if isinstance(ex, dict) else ["."]
@@ -448,10 +472,14 @@ def runbook(c: dict, by_name: dict) -> str:
                   "- **The database is unreachable**: the infrastructure lane it depends on has",
                   "  not applied for this environment; that lane runs first in a convergence.", ""]
     elif t.startswith("cloudflare-"):
-        lines += ["- **A `WIRING_*` secret is missing at deploy**: an infrastructure lane upstream",
-                  "  has not applied for this environment yet. Within one convergence the plan",
-                  "  runs it first; on its own, re-run that lane.",
-                  "- **The smoke fails right after a first deploy**: a new workers.dev route can",
+        _, cfg = worker_config(c)
+        takes_wiring = any(k.startswith("WIRING_") for k in c["secret_env"] + c["optional_env"]) or \
+            bool(cfg and WIRING.search(json.dumps(cfg)))
+        if takes_wiring:
+            lines += ["- **A `WIRING_*` secret is missing at deploy**: an infrastructure lane upstream",
+                      "  has not applied for this environment yet. Within one convergence the plan",
+                      "  runs it first; on its own, re-run that lane."]
+        lines += ["- **The smoke fails right after a first deploy**: a new workers.dev route can",
                   "  answer 4xx for a few seconds and the lane retries. A failure that persists",
                   "  is a regression in the deployed code.", ""]
     else:

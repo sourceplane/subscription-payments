@@ -1,7 +1,7 @@
 # db — architecture
 
-A workspace package at `packages/db`, consumed at build time by the components
-that depend on it. It holds no credentials and opens no connections of its own.
+A workspace package at `packages/db`, consumed by the components that depend
+on it. It has no deployed surface of its own.
 
 ## Exports
 

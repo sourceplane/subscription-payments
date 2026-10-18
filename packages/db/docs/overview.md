@@ -4,11 +4,11 @@ The database migrations and their runner (built by the db-migrate component befo
 
 A workspace package built by the turbo pipeline. It deploys nothing itself: its lane type-checks, lints, tests and builds it.
 
-| | |
-|---|---|
-| Type | `turbo-package` |
-| Source | `packages/db` |
-| Package | `@saas/db` |
+|              |                                                                       |
+| ------------ | --------------------------------------------------------------------- |
+| Type         | `turbo-package`                                                       |
+| Source       | `packages/db`                                                         |
+| Package      | `@saas/db`                                                            |
 | Environments | `dev`: `quick-check` · `stage`: `quick-check` · `prod`: `quick-check` |
 
 ## Depends on
