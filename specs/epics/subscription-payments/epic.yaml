@@ -49,7 +49,7 @@ spec:
       tasks: [SP-6]
     - name: "SP6 — the cirrus standard"
       exitCriteria:
-        - "no file names kiox: orun is pinned where CI runs it (the orun-action `version:` in each workflow)"
+        - "nothing outside this milestone's own record names kiox: orun is pinned where CI runs it (the orun-action `version:` in each workflow)"
         - "every component carries generated docs/{overview,architecture,runbook}.md, and Baseline CI fails a pull request whose manifests and pages disagree"
         - "ai/context carries this repository's current.md, decisions.md and open-risks.md, and none of them ships to a product"
         - "every milestone's status row agrees with the tags"
