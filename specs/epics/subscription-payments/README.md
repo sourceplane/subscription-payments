@@ -8,15 +8,15 @@ The upstream code stays the code: the `@supabase/ssr` clients and the session-re
 
 | Field | Value |
 |-------|-------|
-| Status | ✅ SP0–SP4 shipped (#1–#5) · 🔄 SP5 — a baseline (SP-6) in review. The Supabase and migration applies and a live deploy are gated on a linked workspace; Stripe keys are the product owner's |
-| Cluster | **SP** (SP0–SP5) |
+| Status | ✅ SP0–SP5 shipped (#1–#6), tagged `baseline-v1`; SP6 (the cirrus standard, SP-7) on `main`, not yet tagged. Not yet proven by a live bootstrap: the Supabase and migration applies and a live deploy (risks SP-M, SP-N); Stripe keys are the product owner's |
+| Cluster | **SP** (SP0–SP6) |
 | Owner(s) | `apps/web` (the app) · `tests/web` (helper and webhook tests) · `packages/db` + `infra/db-migrate` + `tests/db` (the schema) · `infra/terraform/supabase` (the project) |
 | Builds on | `lumen` conventions — the `supabase` Terraform root, the `@saas/db` runner and `db-migrate` component, the orun-secrets wiring; `supabase-starter` for the app-on-Workers shape; `cirrus-baseline` conventions for the repository shape |
 | Upstream | [vercel/nextjs-subscription-payments](https://github.com/vercel/nextjs-subscription-payments) (sunset upstream in favour of `nextjs/saas-starter`; ported as it stands) |
 | Changes | Adds the Workers build, the monorepo wrapper, tests, the migrations package, the db-migrate component, the Supabase root and the deploy contract; the template's code changes only where Next 16 / Workers force it (every change is in `IMPLEMENTATION-STATUS.md`) |
 | Decisions locked | (1) OpenNext on Workers + Static Assets. (2) The anon key is a wrangler var, not a secret: RLS protects the data; the service-role key and the Stripe secrets are Worker secrets — the service-role key pushed by every deploy from `WIRING_SUPABASE` (SP5), the Stripe keys added by the owner when ready, the app deploying and serving without them (SP5). (3) `wrangler.jsonc` rendered from the template: committed as the fixture render (the composition checks it exists before the build), re-rendered per environment from the wiring document by the deploy lanes, which the build inlines (SP5; it was never committed before). (4) The schema is applied by the `@saas/db` runner through Supabase's Management API, from the template's `init.sql` verbatim — not by `supabase db push` in CI — then RLS checked on every table (`020`, SP5). (5) No Hyperdrive: the app speaks PostgREST over HTTPS, never a Postgres socket. (6) `stripe` stays on v14: it already has the fetch client and async webhook verification. (7) Infra before app on main: supabase → db-migrate → web, enforced; advisory on pull requests (SP5). |
 | Gate | SP1 is the first user-visible rung. SP2 and SP3 need a workspace with a Supabase connection to apply; they are verified by `plan` / `terraform validate`. Checkout and the webhook need the product's Stripe keys as Worker secrets (the one manual step, see `design.md` §3). |
-| Shipped as | `main` after [#5](https://github.com/sourceplane/subscription-payments/pull/5); verified locally under `wrangler dev` with fixture vars and dummy Worker secrets |
+| Shipped as | `baseline-v1` ([#6](https://github.com/sourceplane/subscription-payments/pull/6)), then SP6 on `main`; proven offline (Baseline CI: contract, leak, placement and the e2e tier over a local Supabase Auth and Data API), deploy gated until a workspace is linked |
 
 ## Read order
 
@@ -35,3 +35,4 @@ The upstream code stays the code: the `@supabase/ssr` clients and the session-re
 | SP3 — the Supabase project from Terraform | `infra/terraform/supabase`, the app's `secretEnv` and `dependsOn` it completes | the root validates; the secret and wiring keys match the component |
 | SP4 — ready to instantiate | README, as-built status | a reader can run, test, preview, configure Stripe and deploy it |
 | SP5 — a baseline | card, build document, rename, bootstrap tooling, the product's README and context pack, tests | a new product goes from nothing to live on stage and prod in one landing, with no Stripe key, every table behind RLS; Baseline CI green |
+| SP6 — the cirrus standard | no kiox, generated component docs, the context pack, status that agrees with the tags | Baseline CI green with the docs check |

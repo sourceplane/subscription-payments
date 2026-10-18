@@ -120,7 +120,7 @@ apps/web                      the template (app/, components/, utils/, styles/, 
   wiring.fixture.json         offline values for the verify lane
   .dev.vars.example           the Worker secrets, for wrangler dev
   open-next.config.ts         static-assets incremental cache (pre-rendered shells), no R2/KV/D1
-packages/db                   @saas/db: the control migration + 010_subscriptions_init (init.sql verbatim), the Management-API runner
+packages/db                   @saas/db: the control migration + 010_subscriptions_init (init.sql verbatim) + 020_row_level_security (SP5), the Management-API runner
 infra/db-migrate              plan on PRs, apply on merge, after supabase
 infra/terraform/supabase      the Supabase project per environment (Lumen's root + API keys + wiring document)
 tests/web                     vitest: getURL, trial-end, toDateTime, the toast redirects, the auth settings, the webhook route's 400 paths (mocked stripe + admin)

@@ -47,7 +47,7 @@ if not phases:
 
 PRODUCT = ["ai-deployment", "ai-operations", "db", "db-migrate",
            "db-tests", "github-workflows", "rebrand-values", "root-gitignore", "root-intent",
-           "root-kiox", "root-kiox-lock", "root-package-json", "root-pnpm-lock",
+           "root-package-json", "root-pnpm-lock",
            "root-pnpm-workspace", "root-readme", "root-turbo", "supabase", "tooling-eslint",
            "tooling-migrations", "tooling-tsconfig", "tooling-wire", "vscode", "web",
            "web-tests"]

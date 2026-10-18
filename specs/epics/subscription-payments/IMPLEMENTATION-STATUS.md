@@ -10,7 +10,8 @@ the code departed from `design.md` or from the upstream template.
 | SP2 — the schema through db-migrate | ✅ Shipped (planned offline; apply gated on a linked workspace) | [#3](https://github.com/sourceplane/subscription-payments/pull/3) |
 | SP3 — the Supabase project from Terraform | ✅ Shipped (validated; apply gated on a linked workspace) | [#4](https://github.com/sourceplane/subscription-payments/pull/4) |
 | SP4 — ready to instantiate | ✅ Shipped | [#5](https://github.com/sourceplane/subscription-payments/pull/5) |
-| SP5 — a baseline | 🔄 In review (SP-6) | this branch, `claude/blissful-ptolemy-c5ajf8` |
+| SP5 — a baseline | ✅ Shipped | [#6](https://github.com/sourceplane/subscription-payments/pull/6) (SP-6), tagged `baseline-v1` |
+| SP6 — the cirrus standard | ✅ Shipped | SP-7 — on `main` after `baseline-v1`, not yet tagged |
 
 ## Departures from the upstream template
 
@@ -324,3 +325,38 @@ Not verified: a Terraform apply (the project, its API keys and its Auth
 settings through the brokered OAuth token — SP-M), a db-migrate apply
 against a real project, the `wrangler secret bulk` push and a deploy to a
 real account, a live bootstrap, and checkout against a real Stripe account.
+
+## The cirrus standard (SP6)
+
+Nothing about the app changed. What changed is the baseline around it:
+
+| What | Before | After | Why |
+|---|---|---|---|
+| orun pin | `kiox.yaml` (v2.15.0) + `kiox.lock`, shipped to every product | gone; orun is pinned where it runs, the `orun-action` `version:` in each workflow | nothing ran the kiox pin, and it disagreed with the lanes (v2.78.4) |
+| `root-kiox`, `root-kiox-lock` modules | in `01-product` | removed (`testing/phases.test.sh` and the rebrand's skip list follow) | a product is placed with 181 files: 165 − 2 kiox + 18 docs pages |
+| component docs | none | `docs/overview.md`, `architecture.md`, `runbook.md` beside each of the six `component.yaml` | cirrus-baseline documents every component; the workspace Docs library renders `docs/` beside each manifest |
+| how the docs stay true | — | `tooling/catalog/gen-component-docs.py` derives them from the manifest, the Worker config, Terraform, migrations and package scripts; Baseline CI runs it with `--check` | a hand-written copy of a manifest drifts silently |
+| context pack | `operations.md`, `deployment.md` | plus `current.md`, `decisions.md`, `open-risks.md` | cirrus-baseline's shape; the three new pages are this repository's own and no module places them (the leak gate still allows exactly two) |
+| status | SP5 "in review", on a branch | SP5 shipped and tagged `baseline-v1` | the tag existed; the documents had not caught up |
+
+## Verified (SP6)
+
+- `testing/{manifest,phases,coverage,rebrand,retouch,bootstrap-defer}.test.sh`
+  green; `gen-component-docs.py --check` green (6 components, 18 pages).
+- `orun new --status` at v2.58.11: `01-product` 181 files, `02-docs`
+  hook-only.
+- `testing/leak.test.sh` at v2.58.11: 181 files derived, 174 text files
+  read; ai/context still exactly the two declared pages; the generated pages
+  name no factory path.
+- `testing/placement.test.sh` at v2.58.11: 181 files placed, both landings,
+  branded, re-tenanted; the product's own plan orders supabase → db-migrate →
+  web on stage and prod, enforced; `--resume` changes nothing.
+- `pnpm install --frozen-lockfile`, `wire:fixture` (the tree unchanged),
+  `typecheck`, `lint`, `test` (53 tests: 42 in `tests/web`, 11 in
+  `tests/db`), `build` green.
+- `testing/e2e.test.sh` at v2.78.4 green: the stage db-migrate and web lanes
+  in staged job trees over a local Supabase (GoTrue v2.180.0, PostgREST
+  v12.2.12); `wrangler dev` with the service-role key as its one secret; a
+  sign-up, the account page, checkout and the portal saying Stripe is not
+  connected, a sign-out and a sign-in; 0 of 5 public tables without RLS.
+- `orun task check SP-7` complete.
