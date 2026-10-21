@@ -61,9 +61,11 @@ the blueprint's **required** inputs — `reponame`, `productname`,
 must be supplied on every invocation, single-phase ones included. A
 `--values` file is easier than repeating `--set`.
 
-- `subdomain` — the workers.dev subdomain of the Cloudflare account. It is
-  in every URL the phases probe, in the origin Stripe returns visitors to,
-  and in the Site URL the Supabase root gives the project's Auth.
+- `subdomain` — the workers.dev subdomain of the Cloudflare account you
+  deploy into. It is in every URL the phases probe, in the origin Stripe
+  returns visitors to, and in the Site URL the Supabase root gives the
+  project's Auth. A console or `--from bst_…` build reads it from the
+  Cloudflare connection; pass it only for a hand-run build.
 - `orunWorkspace` — workspace id (`ws_…`). Unset, it is the workspace the
   build runs in (`from: workspace`); with none anywhere, a placeholder that
   fails loudly rather than silently claiming another tenant's workspace.
