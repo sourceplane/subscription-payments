@@ -1,0 +1,25 @@
+apiVersion: orun.io/v1
+kind: TaskContract
+metadata:
+  name: SP-8
+  title: "The subdomain from the Cloudflare connection"
+spec:
+  goal: "The console card reads the workers.dev subdomain from the workspace's Cloudflare connection (`from: connection.cloudflare.workersSubdomain`) instead of asking for it, as cirrus-baseline does since baseline-v23, and the manifest gate holds that source to a connection the card requires"
+  affects:
+    - blueprint.yaml
+    - repo-blueprint.yaml
+    - testing/manifest.test.sh
+    - BOOTSTRAP.md
+    - docs/phases/README.md
+    - ai/context/current.md
+    - ai/context/decisions.md
+    - specs/epics/README.md
+    - specs/epics/subscription-payments/**
+    - tasks/SP-8.TaskContract.yaml
+  doneWhen:
+    - "blueprint.yaml declares `from: connection.cloudflare.workersSubdomain` on `subdomain`, so the console renders no field for it"
+    - testing/manifest.test.sh accepts that source only when spec.requires.integrations lists its provider, and fails naming the input when it does not (mutation-checked)
+    - BOOTSTRAP.md, docs/phases and repo-blueprint.yaml say only a hand-run build passes `--set subdomain`
+    - the contract tests, the docs check, the leak gate and the offline bootstrap are green
+  gates:
+    - checks

@@ -117,6 +117,11 @@ itself changing.
   `open-risks.md` beside the two pages a product ships with — this
   repository's own, so no module places them.
 - **Status that agrees with the tags.** SP5 is shipped and tagged.
+- **The subdomain from the Cloudflare connection (SP-8).** The card declares
+  `subdomain` as `from: connection.cloudflare.workersSubdomain`, as
+  cirrus-baseline does since baseline-v23, so the console asks for nothing the
+  connection already knows; `testing/manifest.test.sh` requires the source's
+  provider in `spec.requires.integrations`.
 
 **Done when**
 - nothing outside this milestone's own record names kiox (`git grep -i
