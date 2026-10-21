@@ -47,3 +47,10 @@ spec:
         - "every table in public has row-level security with upstream's policies: the anon key reads the plans and nothing else, a user their own row and subscriptions; migration 020 and tests/db hold it"
         - "Baseline CI is green: contract tests, the blueprint read by the pinned orun, the leak gate, the offline bootstrap and the product's plans, and the end-to-end tier over a local Supabase Auth and Data API"
       tasks: [SP-6]
+    - name: "SP6 — the cirrus standard"
+      exitCriteria:
+        - "nothing outside this milestone's own record names kiox: orun is pinned where CI runs it (the orun-action `version:` in each workflow)"
+        - "every component carries generated docs/{overview,architecture,runbook}.md, and Baseline CI fails a pull request whose manifests and pages disagree"
+        - "ai/context carries this repository's current.md, decisions.md and open-risks.md, and none of them ships to a product"
+        - "every milestone's status row agrees with the tags"
+      tasks: [SP-7]

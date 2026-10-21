@@ -181,7 +181,6 @@ const EXCLUDE_RE = new RegExp(
     // product claim to be a baseline called by the product's own name.
     "^\\.baseline/",
     "^pnpm-lock\\.yaml$",
-    "^kiox\\.lock$",
     // Migrations are immutable once applied: db-migrate compares each file's
     // sha256 to packages/db/src/manifest.ts and to the database's ledger, so
     // a byte renamed here would stop every later deploy; the Supabase CLI's
