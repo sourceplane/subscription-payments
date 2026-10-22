@@ -28,7 +28,7 @@
 //   {
 //     "reponame":          "acme-pay",            // required — repo slug
 //     "productname":       "Acme Cloud",          // required — the product's display name
-//     "productdomain":     "acme.dev",            // required — the product domain
+//     "productdomain":     "acme.dev",            // optional — default <reponame>.example.com (set later)
 //     "githuborg":         "acme-inc",            // owner of the product repo (source link in docs)
 //     "brandSlug":         "acme",                // default: reponame — worker name prefix
 //     "subdomain":         "acme",                // default: your-workers-subdomain
@@ -69,7 +69,7 @@ if (!verifyOnly && !valuesPath) {
 }
 if (valuesPath) {
   values = JSON.parse(fs.readFileSync(valuesPath, "utf8"));
-  for (const required of ["reponame", "productname", "productdomain"]) {
+  for (const required of ["reponame", "productname"]) {
     if (typeof values[required] !== "string" || values[required].length === 0) {
       console.error(`rebrand: values file is missing required field "${required}"`);
       process.exit(2);
@@ -133,7 +133,11 @@ const rx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // All fields are unused under --verify; the fallbacks keep derivation total.
 const reponame = values.reponame ?? "";
 const productname = values.productname ?? "";
-const productdomain = values.productdomain ?? "";
+// The domain is NOT ASKED at bootstrap: a product goes live on workers.dev and an
+// owner sets a domain later. Until then the reserved placeholder
+// `<reponame>.example.com` (RFC 2606 — it can never be someone else's) stands
+// wherever the domain goes, so setting it is replacing one string.
+const productdomain = (values.productdomain ?? "").trim() || (reponame ? `${reponame}.example.com` : "");
 const githuborg = (values.githuborg ?? "").trim() || baseline.githubOwner;
 const brandSlug = (values.brandSlug ?? "").trim() || reponame;
 const subdomain = (values.subdomain ?? "").trim() || "your-workers-subdomain";

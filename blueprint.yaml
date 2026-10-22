@@ -66,6 +66,12 @@ spec:
   # already holds says so with `from`. repo-blueprint.yaml declares the same
   # names; `repoPrivate`, `orunWorkspace` and `epicSlug` are build inputs with
   # defaults (or filled from the build's workspace) and are not asked.
+  #
+  # NOR IS THE DOMAIN. The product goes live on workers.dev, and a domain is an
+  # owner's step after the bootstrap: `productdomain` defaults to empty, the
+  # rebrand writes the reserved placeholder `<reponame>.example.com` where
+  # the domain goes, and the product's README ("Custom domain") says how to set
+  # it. Nothing that needs a domain is removed — it waits for one.
   inputs:
     - key: reponame
       label: Repo name
@@ -77,11 +83,6 @@ spec:
       pattern: "^[A-Za-z0-9][A-Za-z0-9 .,'&-]{1,48}$"
       help: The name people see — beside the logo and in every page title.
       example: Acme Cloud
-    - key: productdomain
-      label: Product domain
-      pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"
-      help: The domain the product will answer on. It does not need to exist — the app goes live on workers.dev first.
-      example: acme.dev
     - key: githuborg
       label: GitHub organisation
       pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"

@@ -38,7 +38,7 @@ departure.
 git clone --depth 1 --branch <baseline-tag> https://github.com/sourceplane/subscription-payments
 cd subscription-payments
 orun new --blueprint repo-blueprint.yaml --out ~/products/acme-pay --run-hooks --resume \
-  --set reponame=acme-pay --set productname="Acme Cloud" --set productdomain=acme.dev \
+  --set reponame=acme-pay --set productname="Acme Cloud" \
   --set githuborg=acme-inc --set subdomain=<workers-dev-subdomain>
 ```
 

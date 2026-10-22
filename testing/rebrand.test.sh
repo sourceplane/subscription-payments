@@ -80,6 +80,14 @@ check "the Worker's own origin (NEXT_PUBLIC_SITE_URL): worker name and subdomain
 check "the placeholder domain is the product's domain, not a renamed slug" \
   "$acme" intent.yaml '      BASE_DOMAIN: subscription-payments.example.com' \
   '      BASE_DOMAIN: acme.dev'
+check "no domain given: the reserved placeholder, for an owner to replace later" \
+  '{"reponame":"acme-pay","productname":"Acme Cloud","githuborg":"acme-inc","subdomain":"acme"}' \
+  intent.yaml '      BASE_DOMAIN: subscription-payments.example.com' \
+  '      BASE_DOMAIN: acme-pay.example.com'
+check "an empty domain is no domain" \
+  '{"reponame":"acme-pay","productname":"Acme Cloud","productdomain":""}' \
+  intent.yaml '      BASE_DOMAIN: subscription-payments.example.com' \
+  '      BASE_DOMAIN: acme-pay.example.com'
 check "the repo slug" \
   "$acme" package.json '  "name": "subscription-payments",' \
   '  "name": "acme-pay",'
