@@ -57,9 +57,15 @@ carry, so it is an owner's step after the bootstrap (the product's README,
 `01-product` takes the product's identity once and writes it into the repo
 (`.rebrand/values.json`); `02-docs` reads it back from the placed tree. But
 the blueprint's **required** inputs — `reponame`, `productname`,
-`productdomain`, `githuborg` — are validated before any phase runs, so they
-must be supplied on every invocation, single-phase ones included. A
-`--values` file is easier than repeating `--set`.
+`githuborg` — are validated before any phase runs, so they must be supplied
+on every invocation, single-phase ones included. A `--values` file is easier
+than repeating `--set`.
+
+- `productdomain` — NOT ASKED, default empty. The product goes live on
+  workers.dev; empty brands the reserved placeholder `<reponame>.example.com`
+  into `BASE_DOMAIN`, for an owner to replace when they attach a domain (the
+  product's README, "Custom domain"). Pass it only for a product that already
+  has its domain.
 
 - `subdomain` — the workers.dev subdomain of the Cloudflare account you
   deploy into. It is in every URL the phases probe, in the origin Stripe

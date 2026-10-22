@@ -192,7 +192,7 @@ orun integrations list --org <ws> --json && orun cloud check --org <ws>
 | connect Stripe | above |
 | turn on email confirmation | above, "Supabase Auth email" |
 | rotate the service-role key | rotate it in the Supabase dashboard (API keys), then re-run the supabase apply (a merge touching `infra/terraform/supabase`): it republishes `WIRING_SUPABASE`, and the next web deploy pushes the new key |
-| serve a custom domain | attach it to the Worker in Cloudflare; change `NEXT_PUBLIC_SITE_URL` in `apps/web/wrangler.template.jsonc` and the Auth origin in the supabase root; add the new webhook URL in Stripe |
+| serve a custom domain | attach it to the Worker in Cloudflare; change `NEXT_PUBLIC_SITE_URL` in `apps/web/wrangler.template.jsonc` and the Auth origin in the supabase root; add the new webhook URL in Stripe; replace the placeholder `subscription-payments.example.com` in `intent.yaml`'s `BASE_DOMAIN` with it |
 | headless credentials | `ORUN_TOKEN` (workspace-scoped) + `GITHUB_TOKEN` |
 
 The deployment record is the bootstrap's `02-docs` phase. Re-running it (the

@@ -37,11 +37,18 @@ inputs:
     description: The product's display name (e.g. "Acme Cloud") — beside the logo and in every page title.
   productdomain:
     type: string
-    required: true
+    default: ""
     description: >-
-      The domain the product will answer on (e.g. acme.dev) — BASE_DOMAIN and
-      the custom-domain guidance. It does not need to exist: the app answers
-      on workers.dev from its first deploy.
+      The product's own domain, once it has one (e.g. acme.dev). NOT ASKED:
+      the app answers on workers.dev from its first deploy — its site URL,
+      the Supabase Auth origin and the Stripe return and webhook URLs are all
+      the workers.dev origin — and a domain is an owner's step after it.
+      Empty, the rebrand writes the reserved placeholder
+      `<reponame>.example.com` where the domain goes (BASE_DOMAIN in
+      intent.yaml, for every environment), so setting it later is replacing
+      that one string — the product's README, "Custom domain", says how. Pass
+      it with --set only to brand a hand-run build with a domain it already
+      has.
   githuborg:
     type: string
     pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"

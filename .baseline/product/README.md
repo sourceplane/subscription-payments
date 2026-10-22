@@ -162,7 +162,10 @@ own domain, attach the domain to the Worker in Cloudflare (Workers & Pages →
 `NEXT_PUBLIC_SITE_URL` in `apps/web/wrangler.template.jsonc` and the Auth
 origin (`app_origin`) in `infra/terraform/supabase/terraform/main.tf` to it,
 run `pnpm run wire:fixture`, merge, and point Stripe's webhook at the new
-origin.
+origin. In the same change, replace the reserved placeholder
+`subscription-payments.example.com` the product was born with in
+`intent.yaml`'s `BASE_DOMAIN` (one line per environment) — the one place the
+repository names the domain itself.
 
 ## CI
 

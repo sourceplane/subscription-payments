@@ -130,6 +130,15 @@ itself changing.
 - the docs check is green in Baseline CI
 - this file, the status file and `epic.yaml` agree
 
+## SP7 — the domain is set later (SP-9) ✅
+
+**Done when** the console card asks for no domain; `productdomain` is an
+optional build input, empty by default; a product built without one is branded
+with the reserved placeholder `<reponame>.example.com` where the domain goes
+(`BASE_DOMAIN` in `intent.yaml`) and its README says how an owner sets the real one;
+Baseline CI places, leak-checks and plans a product built with no domain.
+Shipped in `baseline-v3`.
+
 ## Sequencing note
 
 SP1's component already names the root's secrets and the db-migrate
