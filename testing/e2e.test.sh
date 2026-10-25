@@ -8,11 +8,13 @@
 # and that its own plan converges in the right order. This proves it WORKS,
 # by doing to it what its own pipelines will:
 #
-#   1. at the 01-product landing (the commit its PR merges), run what
-#      `checks.yml` runs on that PR — install with the lockfile the phase
-#      placed, render the wrangler fixture (which must change nothing: the
-#      render is committed), typecheck, lint, test, build. That landing WAITS
-#      on its checks;
+#   1. at the 01-product landing (the commit its PR merges), install with the
+#      lockfile the product ships, render the wrangler fixture (which must
+#      change nothing: the render is committed), typecheck, lint, test, build.
+#      The landing itself is checked in the build box with `orun validate`
+#      and `orun plan` alone (`checks: local`), and its PR runs `plan` alone
+#      (an `orun/BASE-*` branch), so THIS is where a product those steps
+#      refuse is caught: before the tag, not after a build has merged it;
 #   2. a Supabase project's API on this machine: a Postgres of its own on a
 #      random port with Supabase's roles (testing/lib/local-postgres.sh), and
 #      on it the REAL Supabase Auth (GoTrue) and Data API (PostgREST) — pinned
@@ -117,24 +119,25 @@ repo="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['reponame
 sub="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['subdomain'])" "$values")"
 export CI=1 WRANGLER_SEND_METRICS=false NEXT_TELEMETRY_DISABLED=1 TURBO_TELEMETRY_DISABLED=1
 
-# What checks.yml runs, step for step, read out of the workflow the product
-# carries so the two cannot drift: every `run:` of its one job, in order.
+# The landing's own checks, step for step — what the product's Checks
+# workflow ran on a pull request before the product carried ci.yml alone —
+# run here at once on the whole tree.
+LANDING_CHECKS=(
+  "pnpm install --frozen-lockfile"
+  "pnpm run wire:fixture"
+  "pnpm typecheck"
+  "pnpm lint"
+  "pnpm test"
+  "pnpm build"
+)
 checks() { # DIR LOG
   local dir="$1" log="$2" cmd
-  while IFS= read -r cmd; do
+  for cmd in "${LANDING_CHECKS[@]}"; do
     echo "   \$ $cmd" | tee -a "$log"
     if ! (cd "$dir" && bash -c "$cmd") >> "$log" 2>&1; then
       echo "FAIL: \`$cmd\` failed in $dir" >&2; tail -40 "$log" >&2; return 1
     fi
-  done < <(python3 - "$dir/.github/workflows/checks.yml" <<'PY'
-import sys, yaml
-wf = yaml.safe_load(open(sys.argv[1]))
-for job in wf["jobs"].values():
-    for step in job["steps"]:
-        if "run" in step:
-            print(step["run"].strip())
-PY
-)
+  done
 }
 
 # One job of a plan, written out as the runner would run it: each `run:` step
@@ -184,7 +187,7 @@ bootstrap_offline "$root" "$tree" "$values" "$scratch/logs" > "$scratch/bootstra
 echo "   2 phases placed and landed"
 
 # ── 1. the product's own pull request ──────────────────────────────────────
-echo "── 01-product's landing, under the checks its PR waits on"
+echo "── 01-product's landing: install, the fixture render, typecheck, lint, test, build"
 s01="$(git -C "$tree" rev-parse HEAD~1)"
 at01="$scratch/at-01/$repo"
 git -C "$tree" worktree add -q "$at01" "$s01"
@@ -233,10 +236,11 @@ git -C "$prtree" checkout -q main
 (cd "$prtree" && orun plan --intent intent.yaml --trigger github-pull-request --base empty --head HEAD --env stage \
    --output "$scratch/plan-pr.json") > "$scratch/plan-pr.log" 2>&1 \
   || { echo "FAIL: orun plan (pull request)" >&2; tail -15 "$scratch/plan-pr.log" >&2; exit 1; }
-# This tier runs the orun the product's CI pins, which reads the per-edge
-# `modeRules`: on a pull request — which applies and deploys nothing — the
-# infrastructure edges that order a push to main are advisory, so no lane
-# waits on another. (placement.test.sh checks the push to main's order.)
+# This tier runs the bootstrap floor, newer than the orun the product's CI
+# pins, and both read the per-edge `modeRules`: on a pull request — which
+# applies and deploys nothing — the infrastructure edges that order a push to
+# main are advisory, so no lane waits on another. (placement.test.sh checks
+# the push to main's order.)
 python3 - "$scratch/plan-pr.json" <<'PY'
 import json, sys
 jobs = {j["component"]: j for j in json.load(open(sys.argv[1]))["jobs"] if j["environment"] == "stage"}

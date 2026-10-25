@@ -8,7 +8,7 @@ lists only what is still live, so it should be short.
 | ID | Risk | State | What closes it |
 |---|---|---|---|
 | SP-M | The supabase root reads the project's API keys and writes its Auth config with the brokered `management-access` token; whether that token's scopes reach those endpoints is untested, and a refusal fails the first apply | OPEN | The first live bootstrap's supabase apply |
-| SP-N | No bootstrap has been timed (the card's twenty minutes is summed from estimates); the root has not been applied and db-migrate has not run against a real project | OPEN | One bootstrap from a tag against a workspace |
+| SP-N | No bootstrap has been timed (the card's sixteen minutes is summed from estimates); the root has not been applied and db-migrate has not run against a real project | OPEN | One bootstrap from a tag against a workspace |
 
 Accepted, and worth knowing before you change them: SP-A (`init.sql` is not
 idempotent), SP-F (the `supabase` CLI devDependency under pnpm 10), SP-H

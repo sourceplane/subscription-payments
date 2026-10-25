@@ -2,10 +2,19 @@ apiVersion: sourceplane.io/v1
 kind: Component
 metadata:
   name: web-tests
+  description: The app's tests (the auth settings and helpers, /api/health, Stripe before and after it is connected, the webhook, the committed wrangler config)
 spec:
   type: turbo-package
   lifecycle: production
   owner: platform
+  # Its pages, attached to it in the workspace's catalog: what the Docs
+  # library shows for it, and what the catalog's docs and runbook checks read.
+  # Generated from what this manifest and its sources declare.
+  docs:
+    overview: docs/overview.md
+    pages:
+      - { path: docs/architecture.md, role: architecture, title: Architecture }
+      - { path: docs/runbook.md, role: runbook, title: Runbook }
   domain: tests
   subscribe:
     environments:

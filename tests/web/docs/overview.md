@@ -1,5 +1,7 @@
 # web-tests
 
+The app's tests (the auth settings and helpers, /api/health, Stripe before and after it is connected, the webhook, the committed wrangler config)
+
 The test suite for **web**. It deploys nothing: its lane installs, builds and runs the tests.
 
 |              |                      |

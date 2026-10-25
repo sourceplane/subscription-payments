@@ -26,7 +26,7 @@ metadata:
     organization needs room for two projects (its free plan allows exactly
     two active ones) — db-migrate applies the schema with row-level security
     on every table, and CI deploys it all to stage and prod on merge, in that
-    order. Stripe connects after the build. Live in about twenty minutes.
+    order. Stripe connects after the build. Live in about sixteen minutes.
   tags: [subscriptions, stripe, supabase, cloudflare, nextjs]
 spec:
   source:
@@ -111,14 +111,14 @@ spec:
       from: connection.cloudflare.workersSubdomain
 
   # ── PREVIEW ONLY. repo-blueprint.yaml's `orun.integrations/reconcile@v1`
-  # hooks mint these, brokered, during 01-product. ─────────────────────────
-  # Transcribed from those hooks' own `keys:` and `template:` values, so
-  # testing/manifest.test.sh compares this list to the document that mints
-  # them. The console renders them read-only: no credential is ever typed,
-  # shown or stored. Keys that already exist are kept. Four keys, four
-  # scopes; no Hyperdrive token, because the app reaches Supabase through
-  # its API, not as Postgres. Stripe's keys are not here: no connection mints
-  # them.
+  # hooks mint these, brokered, during 01-product — one hook per provider. ─
+  # Transcribed from those hooks' own `provider:` and `secrets:` ({key,
+  # template}) values, in their order, so testing/manifest.test.sh compares
+  # this list to the document that mints them. The console renders them
+  # read-only: no credential is ever typed, shown or stored. Keys that
+  # already exist are kept. Four keys, four scopes; no Hyperdrive token,
+  # because the app reaches Supabase through its API, not as Postgres.
+  # Stripe's keys are not here: no connection mints them.
   secrets:
     - key: CLOUDFLARE_API_TOKEN
       provider: cloudflare
@@ -154,11 +154,10 @@ spec:
     # THE BUILD DOCUMENT. There is no umbrella workflow and no agent brief:
     # every phase is declared in it and orun runs it.
     blueprint: repo-blueprint.yaml
-    # Summed from the phases' expectedMinutes (16 + 2), with room: an
-    # estimate until a bootstrap measures it. A Supabase project takes five to
-    # seven minutes to come up, and the app's deploy waits on it and on the
-    # migrations.
-    expectedMinutes: 20
+    # Summed from the phases' expectedMinutes (15 + 1). An estimate until a
+    # bootstrap measures it: a Supabase project takes five to seven minutes to
+    # come up, and the app's deploy waits on it and on the migrations.
+    expectedMinutes: 16
     tokenChannel: ORUN_TOKEN_FILE   # how a runner hands over its refreshed token
   verify:
     urls:

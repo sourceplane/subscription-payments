@@ -9,7 +9,7 @@ name: Baseline CI
 # up, in and out with no Stripe key — through Supabase Auth and the Data API,
 # with every table in `public` behind row-level security.
 #
-# ─── WHY THIS IS NOT IN ci.yml OR checks.yml ──────────────────────────────
+# ─── WHY THIS IS NOT IN ci.yml ────────────────────────────────────────────
 #
 # `repo-blueprint.yaml`'s `github-workflows` module copies the WHOLE `.github`
 # directory into every product built from this repository. These jobs run
@@ -70,20 +70,30 @@ jobs:
   # placement tier (the offline bootstrap: both phases placed and finished by
   # the blueprint's own hooks, then the product's own `orun plan` for the
   # 01-product merge — supabase, then db-migrate, then web, enforced — and a
-  # --resume that changes nothing).
+  # --resume that changes nothing). The floor is v2.88.0 (the task set-up in
+  # the background, the landings checked in the box, the deploy credentials
+  # minted in one `secrets` reconcile per provider), newer than the product's
+  # lane pin (v2.78.4, ci.yml), so the product's own plans here read the
+  # per-edge `modeRules` as its CI does.
   blueprint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: sourceplane/orun-action@v1.2.0
         with:
-          version: v2.58.11
+          version: v2.88.0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.12.1
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # This job installs nothing either: with no lockfile hook the offline
+          # bootstrap never runs pnpm, so there is no store, and the pnpm cache
+          # setup-node v5 turns on by itself (package.json names a packageManager)
+          # fails the job saving a path that does not exist whenever no earlier
+          # cache exists for the lockfile.
+          package-manager-cache: false
       - name: repo-blueprint.yaml, read by the pinned CLI
         run: |
           set -euo pipefail
@@ -104,8 +114,10 @@ jobs:
           git config --global user.name "baseline ci"
           bash testing/placement.test.sh
 
-  # Tier 2. THE PRODUCT IT PRODUCES WORKS: the 01-product landing under the
-  # checks its pull request waits on; a Supabase project's API on the runner —
+  # Tier 2. THE PRODUCT IT PRODUCES WORKS: the 01-product landing installed,
+  # its fixture rendered, type-checked, linted, tested and built (its own pull
+  # request runs `plan` alone, and the landing is checked in the box with
+  # `orun validate` and `orun plan`); a Supabase project's API on the runner —
   # its own Postgres, Supabase Auth and the Data API (the pinned GoTrue and
   # PostgREST releases, checksummed) behind one gateway that checks the API
   # key; the migrations applied by the product's own runner (through a
@@ -115,16 +127,17 @@ jobs:
   # over that project with no Stripe key — its smoke, every route, a sign-up,
   # sign-out, sign-in and the account page through its own server actions, and
   # the anon key refused every row the policies do not give it. Pinned at the
-  # product's lane version, because that is the orun its CI runs. The runner
-  # image carries PostgreSQL 16 (not started); the test starts its own on a
-  # random port.
+  # bootstrap floor (v2.88.0): the offline bootstrap reads the blueprint, and
+  # the floor is newer than the product's lane pin (v2.78.4), which is all
+  # the lane steps need. The runner image carries PostgreSQL 16 (not started);
+  # the test starts its own on a random port.
   product:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: sourceplane/orun-action@v1.2.0
         with:
-          version: v2.78.4
+          version: v2.88.0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.12.1

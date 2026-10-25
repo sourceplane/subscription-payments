@@ -14,8 +14,8 @@
 #     workspace;
 #   - `{{ .inputs.* }}` render from the fixture.
 # Everything else — the retouch marker, the rebrand, the re-tenant, the
-# work-tree strip, the deferrals and their restore, the lockfile, the
-# deployment-docs render — runs exactly as declared.
+# work-tree strip, the deferrals and their restore, the deployment-docs
+# render — runs exactly as declared.
 #
 # The output directory starts EMPTY, as a real one does: no discovery root is
 # made here, so a phase that leaves orun's repo-scale gate one to find (apps/,
