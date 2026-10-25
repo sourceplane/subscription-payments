@@ -12,7 +12,7 @@
 #   2. THE OFFLINE BOOTSTRAP (testing/lib/bootstrap.sh) — both phases placed in
 #      order, each finished by the blueprint's OWN `run:` hooks (the retouch
 #      marker, rebrand, re-tenant, work-tree strip, the deferrals and their
-#      restore, the lockfile, the deployment record), each landing a commit;
+#      restore, the deployment record), each landing a commit;
 #   3. the product it ends with: branded with no residue, carrying nothing of
 #      the factory and naming none of it, re-tenanted, its gates restored, its
 #      record rendered, its wrangler config committed;
@@ -30,9 +30,8 @@
 # testing/e2e.test.sh goes on from here: it installs, migrates, builds and
 # serves the product over a local Supabase API, and signs a user up on it.
 #
-# Needs: orun, node, pnpm, python3 (+PyYAML), git. No credential. The pnpm
-# lockfile confirmation and the deployment-record probes reach the network if
-# they can, and pass without it.
+# Needs: orun, node, pnpm, python3 (+PyYAML), git. No credential. The
+# deployment-record probes reach the network if they can, and pass without it.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/.." && pwd)"
@@ -247,10 +246,10 @@ git -C "$at01" checkout -q "$s01"
 
 # The PRODUCT's CI plans with its own lane pin (ci.yml), not with the orun
 # that places the blueprint: per-edge `modeRules` — advisory on a pull
-# request — are read by that pin, and the bootstrap floor (v2.58.11) plans
-# them enforced everywhere. So the pull-request half below holds only when
-# this orun is at least the product's pin; e2e.test.sh, pinned at the lane
-# version, asserts it again.
+# request — are read by that pin, and an orun older than it (v2.58.11, the
+# bootstrap's floor before v2.88.0) plans them enforced everywhere. So the
+# pull-request half below holds only when this orun is at least the
+# product's pin — which the floor now is; e2e.test.sh asserts it again.
 lane_pin="$(sed -n 's/^ *version: *v\([0-9.]*\) *$/\1/p' "$tree/.github/workflows/ci.yml" | head -1)"
 this_orun="$(orun --version | sed -n 's/.*version v\{0,1\}\([0-9.]*\).*/\1/p' | head -1)"
 
@@ -337,8 +336,10 @@ else:
 # from the product's own plan (component secretEnv AND the compositions'
 # bindings), the blueprint's reconcile hooks and the components' secretOutputs.
 bp = yaml.safe_load((root / "repo-blueprint.yaml").read_text())
+# Either form a reconcile takes: `secrets: [{key, template}]`, or `keys`.
 minted = {k for p in bp["phases"] for slot in (p.get("hooks") or {}).values() for h in slot
-          if (h.get("uses") or "").startswith("orun.integrations/reconcile@") for k in h["with"]["keys"]}
+          if (h.get("uses") or "").startswith("orun.integrations/reconcile@")
+          for k in [s["key"] for s in h["with"].get("secrets") or []] + list(h["with"].get("keys") or [])}
 published = set()
 for comp in tree.glob("infra/**/component.yaml"):
     so = str(((yaml.safe_load(comp.read_text()) or {}).get("spec") or {}).get("parameters", {}).get("secretOutputs") or "")

@@ -9,8 +9,13 @@ container the same operation as running them all.
 
 Each phase follows the same contract:
 
-> **place its modules → brand them → land them as one pull request → watch
-> the convergence that merge triggers (auto-resumed) → verify the outcome.**
+> **place its modules → brand them → check them in the box and land them as
+> one pull request → watch the convergence that merge triggers
+> (auto-resumed) → verify the outcome.**
+
+The run's task set-up — the epic, a milestone per phase, a task per landing
+— runs in the background from the start; the first hook that needs it, the
+phase's `task`, waits for it.
 
 Run from the baseline checkout (the blueprint's source is `path: .`); the
 product's repository is wherever `--out` points.
@@ -19,7 +24,7 @@ product's repository is wherever `--out` points.
 
 | phase | lands | verified by |
 |---|---|---|
-| [`01-product`](01-product.md) | **the GitHub repo created**, then the WHOLE product in one PR: intent, CI, tooling, the Supabase Terraform root, the migrations, the app and its tests — one convergence provisions and deploys it in dependency order | convergence green; `SUPABASE_*` and `WIRING_SUPABASE` published on stage and prod; `/` and `/api/health` answer on both |
+| [`01-product`](01-product.md) | **the GitHub repo created**, then the WHOLE product in one PR: intent, CI, tooling, the Supabase Terraform root, the migrations, the app and its tests — one convergence provisions and deploys it in dependency order | convergence green (each component resolving what the apply before it published); `/` and `/api/health` answer on both |
 | [`02-docs`](02-docs.md) | the live-deployment record; the promotion gate and dev's lanes put back | committed manifest matches probed reality |
 
 **One landing builds the product.** The order the data plane needs — the
@@ -38,14 +43,20 @@ service-role key it hands the Worker as a secret. There is no Hyperdrive: the
 app reaches Supabase through supabase-js (Auth and the Data API), never as
 raw Postgres.
 `testing/placement.test.sh` reads that order off the product's own
-`orun plan --trigger github-push-main`.
+`orun plan --trigger github-push-main`. Each job reads them from the place
+every later run looks, and a missing one fails its lane, so a green
+convergence already says all of it is there — there is no separate check.
 
 Every landing is a pull request on a branch named for its task
-(`orun/BASE-<n>-<phase>`). On those branches `ci.yml` runs `plan` only — the
-intent, every component and every composition resolve — and skips the lanes,
+(`orun/BASE-<n>-<phase>`), checked before it is pushed: `orun validate`, then
+`orun plan` as the pull request and as the merge would plan it, in the box,
+in under a second (`checks: local`). Then it merges; nothing waits for the
+PR's CI. On those branches `ci.yml` runs `plan` only and skips the lanes,
 because the merge runs them on main a minute later, for real, and that
-convergence is what the phase watches. `checks.yml` (install, typecheck,
-lint, test, build) runs on every pull request regardless.
+convergence is what the phase watches. The product carries no other
+workflow: the baseline's own CI (Tier 2) installs, renders the fixture,
+type-checks, lints, tests and builds this landing before a tag is cut, and
+every later pull request in the product runs `ci.yml`'s verify lanes.
 
 There is no custom-domain phase: the app answers on workers.dev. Attaching a
 domain needs zone permissions the brokered `workers-deploy` token does not

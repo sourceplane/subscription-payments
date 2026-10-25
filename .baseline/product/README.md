@@ -14,7 +14,7 @@ included, all on every merge to `main`.
 
 <!-- 02-docs:begin -->
 Not recorded yet. The bootstrap's last phase writes the live URLs, the
-workspace, whether Stripe is connected and the secrets inventory into
+workspace, whether Stripe is connected and the secrets the product uses into
 [ai/context/deployment.md](ai/context/deployment.md); how the product deploys
 and how to operate it is in
 [ai/context/operations.md](ai/context/operations.md).
@@ -171,5 +171,4 @@ repository names the domain itself.
 
 | Workflow | What it runs |
 |---|---|
-| `checks.yml` | install, wire fixture, typecheck, lint, test, build — every pull request (not pushes: on `main`, `ci.yml` must be the only run a commit has) |
-| `ci.yml` | the Orun pipeline: `orun plan --changed`, then one job per lane; applies, migrates and deploys stage → prod on merge |
+| `ci.yml` | the Orun pipeline, and the only workflow: `orun plan --changed`, then one job per lane. A pull request runs the verify lanes — the app built and dry-deployed for each environment, the Terraform root checked and planned, the migrations planned and their checksums verified — with nothing applied or deployed. It does not typecheck, lint or run the tests: those are the `pnpm` scripts above (Getting started), run them before you push. A merge applies, migrates and deploys stage → prod |

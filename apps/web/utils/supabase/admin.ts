@@ -15,8 +15,8 @@ const TRIAL_PERIOD_DAYS = 0;
 //
 // Built per call rather than at module scope: on Cloudflare Workers the
 // environment is populated per request, and a build without a Supabase
-// project (Checks, a fresh clone) must not throw while Next collects the
-// webhook route's page data.
+// project (the landing's checks in the baseline's CI, a fresh clone) must
+// not throw while Next collects the webhook route's page data.
 const supabaseAdmin = () =>
   createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',

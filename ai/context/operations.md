@@ -2,7 +2,7 @@
 
 This is the standing guide to how this product is deployed and operated.
 Instance facts (live URLs, workspace, whether Stripe is connected, the
-secrets inventory) live in [deployment.md](deployment.md), rendered from
+secrets it uses) live in [deployment.md](deployment.md), rendered from
 probed reality by the bootstrap's `02-docs` phase; this file is the contract
 that stays true between deployments. It is written to give an agent with
 repository read access enough context to reason about and operate the product

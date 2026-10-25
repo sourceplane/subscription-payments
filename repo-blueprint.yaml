@@ -193,6 +193,10 @@ modules:
     source: baseline
     from: pnpm-workspace.yaml
     to: pnpm-workspace.yaml
+  # The baseline's complete lockfile, as it is: the whole tree lands at once
+  # and the lockfile carries no identity, so there is nothing to re-resolve —
+  # the lanes install it with --frozen-lockfile, and the baseline's own CI
+  # (testing/e2e.test.sh) does the same on this exact tree before a tag.
   - name: root-pnpm-lock
     mode: copy
     source: baseline
@@ -325,15 +329,23 @@ modules:
 # new milestone after the last, and a task naming a milestone the epic does
 # not have yet would create it out of order.
 #
-# Each phase's own `pre` hook runs `orun.task/ensure@v1` on its task again.
-# Same identity, so it finds rather than creates, and it is how the phase gets
-# the task's KEY for its landing. (Under an orun older than v2.60, which has
-# no run-level list, that hook is what creates the task — same identity, same
-# result, one phase late.)
+# IN THE BACKGROUND (orun >= v2.88.0, `background: true` on every hook here).
+# Nothing a phase does before its landing reads the task plane — the provider
+# check, the placement, the rebrand, the repository, the secrets — so the
+# whole list runs beside 01-product instead of before it, in order. A hook
+# that works on the plane (`orun.task/ensure@v1`, `orun.pr/land@v1`) waits
+# for it to finish; a failure here stops the build at the next hook.
+#
+# Each phase's own `task` hook runs `orun.task/ensure@v1` on its task again,
+# just before its landing. Same identity, so it finds rather than creates,
+# and it is how the phase gets the task's KEY for its landing; it sits in
+# `post` rather than `pre` so that everything before it overlaps with this
+# list.
 hooks:
   preInstantiate:
     - id: epic
       uses: orun.task/ensure@v1
+      background: true
       with:
         kind: epic
         slug: "{{ .inputs.epicSlug }}"
@@ -349,6 +361,7 @@ hooks:
         owner: me
     - id: m01
       uses: orun.task/ensure@v1
+      background: true
       with:
         kind: milestone
         epic: "{{ .inputs.epicSlug }}"
@@ -359,6 +372,7 @@ hooks:
           - the home page and /api/health answer on both workers.dev URLs
     - id: m02
       uses: orun.task/ensure@v1
+      background: true
       with:
         kind: milestone
         epic: "{{ .inputs.epicSlug }}"
@@ -368,6 +382,7 @@ hooks:
           - prod waits on stage again, and dev verifies every merge to main again
     - id: t01
       uses: orun.task/ensure@v1
+      background: true
       with:
         kind: task
         epic: "{{ .inputs.epicSlug }}"
@@ -384,6 +399,7 @@ hooks:
         contract: .baseline/tasks/01-product.TaskContract.yaml
     - id: t02
       uses: orun.task/ensure@v1
+      background: true
       with:
         kind: task
         epic: "{{ .inputs.epicSlug }}"
@@ -420,7 +436,15 @@ phases:
   - name: 01-product
     title: The product, built in one landing
     description: The whole tree — manifests, CI, tooling, the Supabase root, the migrations, the app and its tests — branded, landed as one pull request, and provisioned and deployed by one convergence.
-    expectedMinutes: 16
+    # An estimate, not a measurement: no bootstrap of this baseline has been
+    # timed. The convergence is most of it — a Supabase project takes five to
+    # seven minutes to come up, then the migrations and the app's build,
+    # deploy and smoke, stage and prod side by side. One minute less than
+    # before the v2.88.0 shape: on turso-starter's measured build that shape
+    # takes about a minute out of the same steps — the task set-up in the
+    # background, the landing checked in the box instead of by a runner, the
+    # watch reading every 5 s instead of 40.
+    expectedMinutes: 15
     narrate:
       start:  "Creating the repository and landing the whole product in one pull request — the app, its migrations, and the Terraform for a Supabase project per environment. Then one convergence provisions and deploys it in order. Usually about {{ .meta.expectedMinutes }} minutes."
       await:  "One convergence is running per environment: the Supabase project first (five to seven minutes to come up), then the migrations, then the app. Nothing is stuck."
@@ -444,19 +468,6 @@ phases:
             waitSeconds: 600
             pollSeconds: 20
     hooks:
-      pre:
-        # The epic, every milestone and every task already exist (the
-        # run-level list above). This finds the task and yields its key, which
-        # the landing binds the pull request to.
-        - id: task
-          uses: orun.task/ensure@v1
-          with:
-            kind: task
-            epic: "{{ .inputs.epicSlug }}"
-            milestone: "{{ .phase.name }}"
-            name: "Build the product in one landing"
-            prefix: BASE
-            contract: .baseline/tasks/01-product.TaskContract.yaml
       post:
         # A RE-RUN MUST HAVE SOMETHING TO LAND. A convergence can fail AFTER
         # its PR merged, and the merge has already put every file on main;
@@ -530,11 +541,6 @@ phases:
           run: ["git", "add", "-A"]
         - id: rebrand-verify
           run: ["node", "{{ .baseline.dir }}/tooling/rebrand/rebrand.mjs", "--verify", "--values", ".rebrand/values.json"]
-        # root-pnpm-lock placed the baseline's complete lockfile and the whole
-        # tree is here, so this only confirms it — the Checks and every lane
-        # install with --frozen-lockfile.
-        - id: pnpm-lockfile
-          run: ["pnpm", "install", "--lockfile-only"]
         # The repo has to exist before there is anywhere to land.
         - id: repo
           uses: orun.repo/ensure@v1
@@ -563,11 +569,14 @@ phases:
             - link
             - "{{ .inputs.orunWorkspace }}"
             - "{{ .inputs.githuborg }}/{{ .inputs.reponame }}"
-        # The provider credentials, brokered, one hook per template:
-        # `integrations/reconcile` mints from ONE connection with ONE scope
-        # template, so these four keys are four hooks. Keys that already exist
-        # are kept. After the link, before the landing whose convergence uses
-        # them:
+        # The provider credentials, brokered, in ONE hook PER PROVIDER (orun
+        # >= v2.87.0): `secrets` mints each key under its own scope template
+        # from the one connection of that provider the build is bound to,
+        # reading the connections and the existing secrets once and creating
+        # the missing keys side by side. Two hooks, because a reconcile reads
+        # one connection: Cloudflare's two keys, then Supabase's two. Keys that
+        # already exist are kept. After the link, before the landing whose
+        # convergence uses them:
         #   CLOUDFLARE_API_TOKEN    web's deploy (the composition's binding),
         #                           and the Worker secret it pushes
         #   CLOUDFLARE_ACCOUNT_ID   web's deploy
@@ -577,36 +586,44 @@ phases:
         # as Postgres. Stripe's keys are not minted: no connection brokers
         # them, and the product deploys without them (its README, "Connect
         # Stripe").
-        - id: secret-workers-deploy
+        - id: secrets-cloudflare
           uses: orun.integrations/reconcile@v1
           with:
             provider: cloudflare
-            keys: [CLOUDFLARE_API_TOKEN]
-            template: workers-deploy
-        - id: secret-account-id
-          uses: orun.integrations/reconcile@v1
-          with:
-            provider: cloudflare
-            keys: [CLOUDFLARE_ACCOUNT_ID]
-            template: account-id
-        - id: secret-supabase-access
+            secrets:
+              - { key: CLOUDFLARE_API_TOKEN, template: workers-deploy }
+              - { key: CLOUDFLARE_ACCOUNT_ID, template: account-id }
+        - id: secrets-supabase
           uses: orun.integrations/reconcile@v1
           with:
             provider: supabase
-            keys: [SUPABASE_ACCESS_TOKEN]
-            template: management-access
-        - id: secret-supabase-org
-          uses: orun.integrations/reconcile@v1
+            secrets:
+              - { key: SUPABASE_ACCESS_TOKEN, template: management-access }
+              - { key: SUPABASE_ORG_ID, template: org-id }
+        # The task this landing closes, and its key. The run-level list above
+        # opens it in the background; this is the first hook that needs it,
+        # so it is the one that waits for that list (orun >= v2.88.0) — every
+        # hook before it ran while the task plane was still being set up.
+        - id: task
+          uses: orun.task/ensure@v1
           with:
-            provider: supabase
-            keys: [SUPABASE_ORG_ID]
-            template: org-id
-        # THE PRODUCT IS A PULL REQUEST THAT IS CHECKED, THEN MERGED. This
-        # landing waits for its PR's whole CI run (orun >= v2.58.6): Checks
-        # (install, typecheck, lint, test, build) and `plan` — on a bootstrap
-        # branch (`orun/BASE-…`) the lanes are skipped (ci.yml), because the
-        # merge runs every one of them on main a minute later, for real, and
-        # the convergence after the merge is what this phase watches to green.
+            kind: task
+            epic: "{{ .inputs.epicSlug }}"
+            milestone: "{{ .phase.name }}"
+            name: "Build the product in one landing"
+            prefix: BASE
+            contract: .baseline/tasks/01-product.TaskContract.yaml
+        # THE PRODUCT IS A PULL REQUEST THAT IS CHECKED, THEN MERGED — checked
+        # HERE (`checks: local`, orun >= v2.88.0): `orun validate`, then
+        # `orun plan` as the pull request and as the merge to main plan it,
+        # on the commit, before it is pushed. That is what the PR's `plan`
+        # job checks (the intent, every component and every composition
+        # resolve), plus the merge's own plan, in under a second instead of a
+        # runner's ~25 s. A tree that fails is never pushed. The PR's CI still
+        # runs (`plan` alone on a bootstrap branch, `orun/BASE-…`, ci.yml);
+        # nothing waits for it. The merge runs every lane on main a minute
+        # later, for real, and the convergence after it is what this phase
+        # watches to green.
         - id: land
           uses: orun.pr/land@v1
           narrate: "The product is merged into main."
@@ -615,6 +632,7 @@ phases:
             epic: "{{ .inputs.epicSlug }}"
             branchSlug: "{{ .phase.name }}"
             title: "feat: {{ .inputs.productname }}, the whole product from the subscription-payments baseline"
+            checks: local
       await:
         - id: converge
           uses: orun.run/watch@v1
@@ -628,18 +646,23 @@ phases:
             repo: "{{ .inputs.githuborg }}/{{ .inputs.reponame }}"
             resumeBudget: 3
             waitSeconds: 3600
-        # WHERE THE OUTPUTS ARE PUBLISHED: each apply lease-publishes its
-        # outputs to the project's ENVIRONMENT rungs (stage and prod), not to
-        # the workspace. The Supabase project's three, which db-migrate reads,
-        # and WIRING_SUPABASE — its URL, anon key and service-role key — which
-        # the app's deploy renders and pushes.
-        - id: wiring
-          uses: orun.secrets/exists@v1
-          narrate: "The Supabase credentials and the app's Supabase wiring are published on stage and prod."
-          with:
-            keys: [SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD, SUPABASE_DB_URL, WIRING_SUPABASE]
-            project: "{{ .inputs.reponame }}"
-            environments: [stage, prod]
+            # Read every 5 s, not the action's 40: the build goes on the
+            # moment the run is green instead of up to 40 s after it.
+            pollSeconds: 5
+        # NO SEPARATE CHECK OF WHAT THE APPLY PUBLISHES. The supabase apply
+        # lease-publishes its outputs to the project's stage and prod rungs,
+        # and every one of the four is resolved IN THIS CONVERGENCE, from the
+        # place every later run looks (the readers' component.yaml
+        # `secretEnv`, fail-closed when a job starts), by a job that waits for
+        # the supabase apply on main (`mode: enforced`):
+        #   SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD, SUPABASE_DB_URL
+        #                       db-migrate, per environment
+        #   WIRING_SUPABASE     web's deploy — its URL, anon key and
+        #                       service-role key — each environment's own
+        # A missing document fails that lane, so a green run already says all
+        # four are there. testing/phases.test.sh fails if one of them loses
+        # its reader, and asks for an `orun.secrets/exists@v1` await again for
+        # any key nothing in the convergence reads.
         - id: verify
           uses: orun.http/probe@v1
           narrate: "The app and its Supabase check answered on stage and prod."
@@ -651,31 +674,22 @@ phases:
               - "https://{{ .inputs.reponame }}-web-prod.{{ .inputs.subdomain }}.workers.dev/api/health"
 
   # Places nothing. It records what 01-product built, from PROBED facts rather
-  # than from what the blueprint intended — which is why it runs last and why
-  # its verify is the probe 01-product ends on.
+  # than from what the blueprint intended — which is why it runs last. Its
+  # render probes every URL as it writes the record, and this landing
+  # redeploys nothing, so there is no probe after it to wait for.
   - name: 02-docs
     title: The deployment, recorded
     description: The live-deployment manifest, rendered from probed reality, and the promotion gate and dev's lanes put back.
-    expectedMinutes: 2
+    # An estimate: the render's probes, a landing checked in the box, a merge.
+    expectedMinutes: 1
     narrate:
       start:  "Now recording what was actually built — probing every URL, noting whether Stripe is connected yet, and writing the deployment manifest into the repository."
-      await:  "Probing the live endpoints one last time."
       done:   "ai/context/deployment.md now records the live deployment, written from probed facts, and prod waits on stage again. {{ .meta.elapsed }}."
       failed: "The deployment record did not land. The product is still live; only the write-up is missing."
     modules: []
     requires:
       phases: [01-product]
     hooks:
-      pre:
-        - id: task
-          uses: orun.task/ensure@v1
-          with:
-            kind: task
-            epic: "{{ .inputs.epicSlug }}"
-            milestone: "{{ .phase.name }}"
-            name: "Record the live deployment"
-            prefix: BASE
-            contract: .baseline/tasks/02-docs.TaskContract.yaml
       post:
         # THE PRODUCT GOES LIVE WITH ITS PROMOTION GATE. 01-product deferred
         # `prod.promotion.dependsOn: [stage]`; this, the last landing, puts it
@@ -690,6 +704,16 @@ phases:
           run: ["node", "{{ .baseline.dir }}/tooling/bootstrap/dev-lanes.mjs", "--restore"]
         - id: render
           run: ["bash", "{{ .baseline.dir }}/hooks/render-deployment-docs.sh", ".", "{{ .inputs.orunWorkspace }}", "{{ .baseline.dir }}"]
+        - id: task
+          uses: orun.task/ensure@v1
+          with:
+            kind: task
+            epic: "{{ .inputs.epicSlug }}"
+            milestone: "{{ .phase.name }}"
+            name: "Record the live deployment"
+            prefix: BASE
+            contract: .baseline/tasks/02-docs.TaskContract.yaml
+        # Checked here and merged, as 01-product's landing is.
         - id: land
           uses: orun.pr/land@v1
           narrate: "The deployment record is merged into main."
@@ -698,13 +722,4 @@ phases:
             epic: "{{ .inputs.epicSlug }}"
             branchSlug: "{{ .phase.name }}"
             title: "docs(deployment): record the live deployment state"
-      await:
-        - id: verify
-          uses: orun.http/probe@v1
-          narrate: "Every live URL answered on the final probe."
-          with:
-            urls:
-              - "https://{{ .inputs.reponame }}-web-stage.{{ .inputs.subdomain }}.workers.dev"
-              - "https://{{ .inputs.reponame }}-web-stage.{{ .inputs.subdomain }}.workers.dev/api/health"
-              - "https://{{ .inputs.reponame }}-web-prod.{{ .inputs.subdomain }}.workers.dev"
-              - "https://{{ .inputs.reponame }}-web-prod.{{ .inputs.subdomain }}.workers.dev/api/health"
+            checks: local
