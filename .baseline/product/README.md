@@ -113,6 +113,14 @@ never anyone else's, and the user→Stripe-customer map is the service role's
 alone. Migration `020_row_level_security` stops a deploy that would leave a
 table without it.
 
+**Deploy by hand.** Orunbase's **Deploy** button on a component, or **Run
+workflow** on the CI workflow in GitHub's Actions tab (on `main`), runs
+`ci.yml` for the environment and components you pick, and each one deploys
+exactly as a merge would deploy it. Leave the component blank to redeploy
+every component in that environment, with nothing changed: after rotating a
+secret, say. A component with nothing to run in that environment (a test
+suite in `prod`) is left out with a notice.
+
 ## Connect Stripe
 
 Stripe is a third party no platform brokers, so the product deploys without
