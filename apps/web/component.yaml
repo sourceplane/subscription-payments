@@ -67,6 +67,27 @@ spec:
           - profile: deploy
             when:
               triggerRef: github-push-main
+  # How the site runs itself for orun.work's live Preview tab
+  # (saas-parallel-baselining PB4): `orun preview` starts this, and a coding
+  # session keeps it running while it works, so the person watches it change
+  # as it is built. The dev server binds the box's loopback only, on a fixed
+  # port, and installs first, so a checkout the session has not installed yet
+  # still comes up. No Supabase project or Stripe account is wired in (nothing
+  # secret goes here): PREVIEW_USE_WRANGLER_VARS has `next dev` read the
+  # committed wrangler.jsonc's fixture project, as a dev-lane build does
+  # (next.config.mjs), so the pricing page renders its sample plans with
+  # checkout off, and sign-in renders but reaches no Supabase.
+  preview:
+    run:
+      - sh
+      - -c
+      - pnpm install --frozen-lockfile --prefer-offline --filter "@app/web..." && exec node_modules/.bin/next dev -H 127.0.0.1 -p 3000
+    port: 3000
+    path: /
+    env:
+      NODE_OPTIONS: --max-old-space-size=1024
+      NEXT_TELEMETRY_DISABLED: "1"
+      PREVIEW_USE_WRANGLER_VARS: "1"
   parameters:
     nodeVersion: "22"
     pnpmVersion: "10.12.1"

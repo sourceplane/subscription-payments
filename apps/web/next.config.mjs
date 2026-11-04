@@ -75,8 +75,30 @@ export default function nextConfig(phase) {
     // resolve from the root node_modules.
     output: 'standalone',
     outputFileTracingRoot: path.join(__dirname, '../..'),
+    // Dev server only (`next build` ignores it): orun.work's live Preview tab
+    // loads `next dev` from the preview's own host, and Next.js refuses the
+    // hot reload and other /_next/* dev requests from an origin it is not told
+    // about. These are the preview's hosts, prod's and stage's.
+    allowedDevOrigins: ['*.orun-preview.app', 'preview-gateway-stage.oruncloud.workers.dev'],
+    experimental: {
+      // Dev server only: behind orun.work's live Preview the browser's Origin
+      // is the preview's host while `next dev` sees a local Host, and Next.js
+      // refuses a Server Action from an origin it is not told about. `next
+      // build` runs with NODE_ENV=production, so production keeps its
+      // same-origin check.
+      ...(process.env.NODE_ENV === 'development'
+        ? { serverActions: { allowedOrigins: ['*.orun-preview.app', 'preview-gateway-stage.oruncloud.workers.dev'] } }
+        : {})
+    },
     // Only a production build reads the wrangler config: `next dev` keeps the
-    // template's own behaviour, `.env.local`.
-    env: phase === PHASE_PRODUCTION_BUILD ? publicBuildEnv() : {}
+    // template's own behaviour, `.env.local`. orun.work's live Preview is the
+    // one exception (apps/web/component.yaml's spec.preview sets
+    // PREVIEW_USE_WRANGLER_VARS): it reads the committed wrangler.jsonc as a
+    // dev-lane build does, the fixture project, so the pages render rather
+    // than fail to build a Supabase client. A value in `.env.local` still wins.
+    env:
+      phase === PHASE_PRODUCTION_BUILD || process.env.PREVIEW_USE_WRANGLER_VARS === '1'
+        ? publicBuildEnv()
+        : {}
   };
 }
