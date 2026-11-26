@@ -99,10 +99,10 @@ export default function Footer() {
         </div>
         <div className="flex items-center">
           <span className="text-white">Crafted by</span>
-          <a href="https://vercel.com" aria-label="Vercel.com Link">
+          <a href="https://orunbase.com" aria-label="Orunbase Link">
             <img
-              src="/vercel.svg"
-              alt="Vercel.com Logo"
+              src="/orunbase.svg"
+              alt="Orunbase Logo"
               className="inline-block h-6 ml-4 text-white"
             />
           </a>
