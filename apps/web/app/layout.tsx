@@ -8,7 +8,7 @@ import { SITE_NAME } from '@/utils/site';
 import 'styles/main.css';
 
 const title = SITE_NAME;
-const description = 'Brought to you by Vercel, Stripe, and Supabase.';
+const description = 'Brought to you by Orunbase, Stripe, and Supabase.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(getURL()),
