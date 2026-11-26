@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 186 34" width="186" height="34" role="img" aria-label="Orunbase">
+  <g transform="scale(0.70833)">
+    <path d="M4.95 31.29 A20.4 20.4 0 1 1 43.05 31.29 Z" fill="#FAFAFA"/>
+    <path d="M8.37 37.11 A20.4 20.4 0 0 0 39.63 37.11 Z" fill="#E3B34C"/>
+  </g>
+  <text x="46" y="26" textLength="138" lengthAdjust="spacingAndGlyphs" font-family="Lora, Georgia, 'Times New Roman', serif" font-weight="500" font-size="30" fill="#FAFAFA">Orunbase</text>
+</svg>

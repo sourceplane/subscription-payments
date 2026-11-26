@@ -15,10 +15,10 @@ export default function LogoCloud() {
           </a>
         </div>
         <div className="flex items-center justify-start h-12">
-          <a href="https://vercel.com" aria-label="Vercel.com Link">
+          <a href="https://orunbase.com" aria-label="Orunbase Link">
             <img
-              src="/vercel.svg"
-              alt="Vercel.com Logo"
+              src="/orunbase.svg"
+              alt="Orunbase Logo"
               className="h-6 text-white"
             />
           </a>
